@@ -1,0 +1,150 @@
+/* ==============================================================================
+   CENTRO PSICOPEDAGÓGICO Y DE ATENCIÓN PSICOLÓGICA "PSI APRENDE"
+   MANUAL DE IDENTIDAD VISUAL Y DESIGN TOKENS OFICIALES
+   ============================================================================== */
+
+:root {
+  /* PALETA CORPORATIVA EXACTA DEL MANUAL DE IDENTIDAD */
+  --brand-navy: #27345F;            /* Azul Marino Profundo (Base institucional y cabeceras) */
+  --brand-purple-deep: #4E3A70;     /* Púrpura Profundo (Texto PSI y acentos principales) */
+  --brand-purple-soft: #795184;     /* Malva Clínico (Badges y sub-elementos) */
+  --brand-teal: #5C8EA0;            /* Azul Petróleo (Texto APRENDE y enlaces secundarios) */
+  --brand-turquoise: #54B8B0;       /* Turquesa Estimulación (Neuropsicología y éxito) */
+  --brand-coral: #E97669;           /* Coral Cálido (Botones primarios y llamadas de atención) */
+  --brand-lavender: #E8DFF0;        /* Lavanda Suave (Fondos sutiles y bordes suaves) */
+  --brand-light-bg: #F7F6FA;        /* Blanco Humo Clínico (Fondo general ultra limpio) */
+  --brand-dark-text: #333447;       /* Gris Pizarra Oscuro (Tipografía principal de alto contraste) */
+
+  /* ROLES SEMÁNTICOS Y ESTADOS */
+  --color-primary: #27345F;
+  --color-accent: #4E3A70;
+  --color-highlight: #E97669;
+  --color-teal: #5C8EA0;
+  --color-mint: #54B8B0;
+
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-info: #5C8EA0;
+
+  /* SUPERFICIES Y FONDOS CLÍNICOS ELEGANTES */
+  --bg-app: #F7F6FA;
+  --bg-surface: #FFFFFF;
+  --bg-surface-elevated: #FFFFFF;
+  --bg-surface-hover: #F2F1F8;
+  --bg-sidebar: #27345F;           /* Sidebar corporativo en Azul Marino institucional */
+  --bg-sidebar-hover: rgba(255, 255, 255, 0.08);
+  --bg-sidebar-active: #4E3A70;    /* Púrpura institucional para ítem activo */
+
+  /* TEXTOS Y TIPOGRAFÍA */
+  --font-family-base: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+  --text-primary: #333447;         /* Texto principal oscuro de alta legibilidad médica */
+  --text-secondary: #60647B;       /* Texto secundario y subtítulos */
+  --text-muted: #8E92A8;           /* Placeholders y marcas de tiempo */
+  --text-white: #FFFFFF;
+  --text-sidebar: #D5D8E8;
+  --text-sidebar-active: #FFFFFF;
+
+  /* BORDES Y SOMBRAS REFINADAS */
+  --border-light: #E6E5ED;
+  --border-focus: #4E3A70;
+  --border-error: #ef4444;
+  --border-success: #10b981;
+
+  --shadow-subtle: 0 1px 3px rgba(39, 52, 95, 0.05), 0 1px 2px rgba(39, 52, 95, 0.06);
+  --shadow-card: 0 4px 12px rgba(39, 52, 95, 0.06), 0 1px 3px rgba(39, 52, 95, 0.04);
+  --shadow-elevated: 0 12px 28px rgba(39, 52, 95, 0.10), 0 4px 10px rgba(39, 52, 95, 0.05);
+  --shadow-coral: 0 4px 14px rgba(233, 118, 105, 0.35);
+
+  /* RADIOS Y DIMENSIONES */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* TRANSICIONES */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* DIMENSIONES DE LAYOUT */
+  --navbar-height: 64px;
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 72px;
+
+  /* ============================================================================
+     SOFT UI MÉDICA — DESIGN TOKENS CLÍNICOS (PANEL GENERAL Y VISTAS FUTURAS)
+     ============================================================================ */
+  /* Paleta Primaria: Morado e Índigo Clínico */
+  --soft-indigo-heading: #24285B;
+  --soft-purple-primary: #584294;
+  --soft-purple-vivid: #6E56B0;
+  --soft-indigo-accent: #4B53A6;
+
+  /* Fondos Pastel para Contenedores de Iconos y Superficies Internas */
+  --soft-lavender-bg: #EFEAFD;
+  --soft-lavender-bg-deep: #E3DBFA;
+  --soft-lavender-surface: #F8F6FE;
+  --soft-mint-bg: #E0F6F3;
+  --soft-mint-bg-deep: #CCF0EB;
+  --soft-mint-deep: #15968D;
+  --soft-indigo-pastel-bg: #E8ECFD;
+
+  /* Indicadores de Estado Activo: Verde Esmeralda */
+  --soft-emerald: #10B981;
+  --soft-emerald-dark: #059669;
+  --soft-emerald-bg: #E6F9F1;
+  --soft-emerald-ring: rgba(16, 185, 129, 0.16);
+
+  /* Jerarquía Tipográfica Clínica */
+  --soft-text-title: #24285B;
+  --soft-text-overline: #6B7094;
+  --soft-text-body: #696F8C;
+  --soft-text-muted: #8E94B2;
+
+  /* Superficies, Bordes Sutiles y Radios Redondeados (rounded-2xl / rounded-3xl) */
+  --soft-surface: #FFFFFF;
+  --soft-border-subtle: rgba(110, 86, 176, 0.08);
+  --soft-border-card-inner: rgba(110, 86, 176, 0.11);
+  --soft-divider: #F0EEF9;
+  --soft-radius-3xl: 24px;
+  --soft-radius-2xl: 20px;
+  --soft-radius-icon: 16px;
+  --soft-radius-btn: 14px;
+
+  /* Sombras Extendidas y Difusas (Soft UI) + Brillo Fino de 1px en Hover */
+  --soft-shadow-card: 0 10px 32px -6px rgba(62, 48, 118, 0.065), 0 4px 14px -3px rgba(36, 40, 91, 0.035);
+  --soft-shadow-card-hover: inset 0 1px 0 rgba(255, 255, 255, 0.92), 0 0 0 1px rgba(139, 114, 214, 0.22), 0 0 22px -2px rgba(116, 91, 184, 0.19), 0 18px 40px -8px rgba(88, 66, 148, 0.13), 0 6px 18px -4px rgba(36, 40, 91, 0.05);
+  --soft-shadow-mint-hover: inset 0 1px 0 rgba(255, 255, 255, 0.92), 0 0 0 1px rgba(45, 185, 174, 0.20), 0 0 22px -2px rgba(45, 185, 174, 0.19), 0 18px 40px -8px rgba(21, 150, 141, 0.13), 0 6px 18px -4px rgba(36, 40, 91, 0.045);
+  --soft-shadow-section-hover: 0 0 0 1px rgba(139, 114, 214, 0.14), 0 0 26px -4px rgba(116, 91, 184, 0.12), 0 12px 34px -6px rgba(62, 48, 118, 0.075), 0 4px 14px -3px rgba(36, 40, 91, 0.035);
+  --soft-shadow-subcard: 0 6px 22px -4px rgba(62, 48, 118, 0.05), 0 2px 8px -2px rgba(36, 40, 91, 0.025);
+  --soft-shadow-modal: 0 26px 64px -12px rgba(36, 40, 91, 0.22), 0 10px 26px -6px rgba(88, 66, 148, 0.12);
+
+  --soft-glow-border-lavender: rgba(124, 98, 196, 0.44);
+  --soft-glow-border-mint: rgba(26, 166, 156, 0.42);
+  --soft-glow-border-section: rgba(124, 98, 196, 0.28);
+
+  /* Degradados Tenues para Tarjetas de Acceso Rápido */
+  --soft-gradient-quick-lavender: linear-gradient(112deg, #FFFFFF 0%, #FFFFFF 46%, #F4F0FD 76%, #E7DFFA 100%);
+  --soft-gradient-quick-mint: linear-gradient(112deg, #FFFFFF 0%, #FFFFFF 44%, #EAFAF7 75%, #D4F3ED 100%);
+
+  /* Sistema Jerárquico de Botones con Degradado Morado por Profundidad */
+  /* Nivel 1: Página Principal (Morado Clínico Intenso) */
+  --soft-btn-lvl-1-bg: linear-gradient(135deg, #584294 0%, #745BB8 100%);
+  --soft-btn-lvl-1-hover: linear-gradient(135deg, #4B3683 0%, #664DA9 100%);
+  --soft-btn-lvl-1-shadow: 0 8px 20px -4px rgba(88, 66, 148, 0.34), 0 2px 6px -1px rgba(88, 66, 148, 0.16);
+
+  /* Nivel 2: Ventana Emergente / Modal (Morado Medio Menos Intenso) */
+  --soft-btn-lvl-2-bg: linear-gradient(135deg, #7B66B5 0%, #9682CC 100%);
+  --soft-btn-lvl-2-hover: linear-gradient(135deg, #6E58A8 0%, #8974C0 100%);
+  --soft-btn-lvl-2-shadow: 0 6px 16px -3px rgba(123, 102, 181, 0.28), 0 2px 5px -1px rgba(123, 102, 181, 0.14);
+
+  /* Nivel 2 Secundario / Cancelar en Modal (Morado Lavanda Suave) */
+  --soft-btn-lvl-2-soft-bg: linear-gradient(135deg, #ECE6F8 0%, #DFD5F3 100%);
+  --soft-btn-lvl-2-soft-hover: linear-gradient(135deg, #E2D9F5 0%, #D3C6ED 100%);
+
+  /* Nivel 3: Sub-modal / Confirmación Anidada (Morado Pastel Atenuado) */
+  --soft-btn-lvl-3-bg: linear-gradient(135deg, #A18FD0 0%, #B8ABE0 100%);
+  --soft-btn-lvl-3-hover: linear-gradient(135deg, #937FC4 0%, #ABA0D8 100%);
+  --soft-btn-lvl-3-shadow: 0 4px 12px -2px rgba(161, 143, 208, 0.24);
+}

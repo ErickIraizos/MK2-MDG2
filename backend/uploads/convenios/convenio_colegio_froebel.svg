@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" width="600" height="300">
+  <defs>
+    <linearGradient id="froebel-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E3A8A"/>
+      <stop offset="60%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+    <linearGradient id="badge-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#FBBF24"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="300" fill="url(#froebel-grad)"/>
+  <circle cx="520" cy="60" r="140" fill="#FFFFFF" fill-opacity="0.05"/>
+  <circle cx="80" cy="240" r="100" fill="#FFFFFF" fill-opacity="0.04"/>
+  
+  <!-- Icono Escolar -->
+  <g transform="translate(60, 65)">
+    <rect width="70" height="70" rx="18" fill="#FFFFFF" fill-opacity="0.15"/>
+    <path d="M35 15 L12 28 L35 41 L58 28 Z" fill="#FBBF24"/>
+    <path d="M20 33 L20 48 Q35 56 50 48 L50 33" stroke="#FBBF24" stroke-width="3" fill="none"/>
+    <line x1="58" y1="28" x2="58" y2="46" stroke="#FBBF24" stroke-width="2.5"/>
+  </g>
+
+  <!-- Textos -->
+  <rect x="150" y="70" width="180" height="26" rx="13" fill="url(#badge-grad)"/>
+  <text x="240" y="87" fill="#78350F" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="800" text-anchor="middle" letter-spacing="1">ALIANZA EDUCATIVA</text>
+  
+  <text x="150" y="125" fill="#FFFFFF" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="800">Colegio Alemán</text>
+  <text x="150" y="152" fill="#93C5FD" font-family="system-ui, -apple-system, sans-serif" font-size="19" font-weight="700">Federico Froebel</text>
+  
+  <text x="60" y="210" fill="#DBEAFE" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="500">Convenio de Articulación Psicopedagógica &amp; Aula Inclusiva</text>
+  <text x="60" y="235" fill="#BFDBFE" font-family="system-ui, -apple-system, sans-serif" font-size="12">Cochabamba · Sede Cala Cala</text>
+  
+  <rect x="60" y="260" width="480" height="2" fill="#FFFFFF" fill-opacity="0.15"/>
+</svg>

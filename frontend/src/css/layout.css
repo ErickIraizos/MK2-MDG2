@@ -1,0 +1,1465 @@
+/* ==============================================================================
+   LAYOUT PRINCIPAL INSTITUCIONAL: HEADER, SIDEBAR COLAPSABLE Y CONTENIDO
+   ============================================================================== */
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: transparent;
+  overflow-x: clip;
+  max-width: 100%;
+  width: 100%;
+  position: relative;
+}
+
+/* NAVBAR SUPERIOR FIJO SOFT UI GLASSMORPHISM */
+#navbar-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--navbar-height);
+  z-index: 1000;
+  width: 100%;
+  max-width: 100%;
+  background: transparent;
+}
+
+.navbar {
+  height: var(--navbar-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  background: 
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(246, 238, 255, 0.36) 45%, rgba(235, 218, 254, 0.48) 100%),
+    url('/assets/home-background.jpg') no-repeat center top / cover !important;
+  backdrop-filter: blur(8px) saturate(170%) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(170%) !important;
+  border-bottom: 1.5px solid rgba(167, 139, 250, 0.42) !important;
+  box-shadow: 0 4px 24px -2px rgba(88, 66, 148, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+  transition: all var(--transition-fast);
+  max-width: 100%;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.navbar::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(88, 66, 148, 0) 0%, rgba(124, 98, 196, 0.55) 25%, rgba(88, 66, 148, 0.75) 50%, rgba(124, 98, 196, 0.55) 75%, rgba(88, 66, 148, 0) 100%);
+  pointer-events: none;
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+/* Botón Hamburguesa Interactivo Soft UI */
+.btn-burger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  color: var(--soft-indigo-heading, #24285B);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(167, 139, 250, 0.45);
+  box-shadow: 0 2px 8px rgba(88, 66, 148, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.btn-burger:hover {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--soft-purple-primary, #584294);
+  border-color: rgba(124, 98, 196, 0.65);
+  box-shadow: 0 4px 14px rgba(88, 66, 148, 0.16), inset 0 1px 0 rgba(255, 255, 255, 1);
+  transform: translateY(-1px);
+}
+
+.btn-burger:active {
+  transform: translateY(0) scale(0.96);
+}
+
+.btn-burger-public {
+  display: none;
+}
+
+/* Logo Oficial de la Marca */
+.navbar-brand-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  min-width: 0;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.navbar-brand-link:hover {
+  transform: translateY(-1px);
+}
+
+.brand-logo-img {
+  height: 38px;
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 6px rgba(88, 66, 148, 0.12));
+}
+
+.brand-text-block {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.brand-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--soft-indigo-heading, #24285B);
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+}
+
+.brand-title span {
+  color: #15968D;
+}
+
+.brand-subtitle {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--soft-purple-primary, #584294);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+.navbar-menu {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.navbar-auth-slot {
+  display: flex;
+  align-items: center;
+  margin-left: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* BOTÓN CÁPSULA INTERACTIVO DE USUARIO CON BRILLO AL HOVER */
+.navbar-user-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.32rem 0.85rem 0.32rem 0.45rem;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(167, 139, 250, 0.45);
+  border-radius: var(--radius-full);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(88, 66, 148, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.navbar-user-btn:hover {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(124, 98, 196, 0.7);
+  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.4), 0 4px 16px rgba(88, 66, 148, 0.16);
+  transform: translateY(-1px);
+}
+
+.navbar-user-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.navbar-user-avatar-mini {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #584294 0%, #745BB8 100%);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(88, 66, 148, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.nav-link {
+  color: var(--soft-text-body, #696F8C);
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.42rem 0.95rem;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  background: transparent;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.nav-link:hover {
+  color: var(--soft-purple-primary, #584294);
+  background: rgba(241, 236, 250, 0.75);
+  border-color: rgba(167, 139, 250, 0.35);
+  box-shadow: 0 2px 8px rgba(88, 66, 148, 0.06);
+  transform: translateY(-1px);
+}
+
+.nav-link.active {
+  color: #FFFFFF !important;
+  background: linear-gradient(135deg, #584294 0%, #745BB8 100%) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 4px 14px rgba(88, 66, 148, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+}
+
+/* BOTONES DE ACCIÓN EN TOPBAR */
+.btn-access-portal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.42rem 1.05rem;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #FFFFFF !important;
+  background: linear-gradient(135deg, #584294 0%, #745BB8 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: var(--radius-full);
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(88, 66, 148, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.btn-access-portal:hover {
+  background: linear-gradient(135deg, #4B3683 0%, #664DA9 100%) !important;
+  box-shadow: 0 0 14px rgba(124, 98, 196, 0.45), 0 6px 18px rgba(88, 66, 148, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-access-portal:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-install-pwa {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.95rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #FFFFFF !important;
+  background: linear-gradient(135deg, #584294 0%, #745BB8 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: var(--radius-full);
+  box-shadow: 0 4px 14px rgba(88, 66, 148, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.btn-install-pwa:hover {
+  background: linear-gradient(135deg, #4B3683 0%, #664DA9 100%) !important;
+  box-shadow: 0 0 14px rgba(124, 98, 196, 0.45), 0 6px 18px rgba(88, 66, 148, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-install-pwa:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.42rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(167, 139, 250, 0.45);
+  color: #373B53;
+  box-shadow: 0 2px 8px rgba(88, 66, 148, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.btn-logout:hover {
+  background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);
+  color: #DC2626;
+  border-color: #F87171;
+  box-shadow: 0 2px 10px rgba(220, 38, 38, 0.16);
+  transform: translateY(-1px);
+}
+
+.btn-logout:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* CONTENEDOR PRINCIPAL */
+.app-container {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  position: relative;
+  min-width: 0;
+}
+
+/* CONTENEDOR DEL SIDEBAR: OCULTO POR DEFECTO, FIJO CUANDO APP TIENE .has-sidebar */
+#sidebar-container {
+  display: none;
+  background: transparent !important;
+}
+
+#app.has-sidebar #sidebar-container {
+  display: block;
+  position: fixed;
+  top: var(--navbar-height);
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-width);
+  height: calc(100vh - var(--navbar-height));
+  height: calc(100dvh - var(--navbar-height));
+  z-index: 900;
+  box-sizing: border-box;
+  background: transparent !important;
+  transition: width var(--transition-normal);
+}
+
+#sidebar-container:empty {
+  display: none !important;
+}
+
+#app.has-sidebar.sidebar-collapsed #sidebar-container {
+  width: var(--sidebar-collapsed-width);
+}
+
+/* ==============================================================================
+   SIDEBAR PROFESIONAL CLÍNICO CON DISEÑO DE ONDAS Y DEGRADADO INSTITUCIONAL
+   ============================================================================== */
+.sidebar {
+  width: 100%;
+  height: 100%;
+  background: 
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(246, 238, 255, 0.36) 45%, rgba(235, 218, 254, 0.48) 100%),
+    url('/assets/home-background.jpg') no-repeat left top / cover !important;
+  backdrop-filter: blur(8px) saturate(170%) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(170%) !important;
+  border-right: 1.5px solid rgba(167, 139, 250, 0.42) !important;
+  box-shadow: 6px 0 28px -2px rgba(88, 66, 148, 0.15), inset -1px 0 0 rgba(255, 255, 255, 0.75) !important;
+  padding: 1.25rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: padding var(--transition-normal), width var(--transition-normal);
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(167, 139, 250, 0.45);
+  border-radius: 4px;
+}
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(88, 66, 148, 0.7);
+}
+
+.sidebar-section-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.4;
+  text-transform: uppercase;
+  color: #3B2D54;
+  padding: 0.75rem 0.85rem 0.35rem 0.85rem;
+  margin-top: 0.65rem;
+  letter-spacing: 0.09em;
+  white-space: nowrap;
+  overflow: visible;
+  transition: opacity var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.sidebar-section-title:first-child {
+  margin-top: 0;
+  padding-top: 0.25rem;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-md);
+  color: #24285B;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.sidebar-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: #584294;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.sidebar-item:hover {
+  color: #24285B;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-color: rgba(167, 139, 250, 0.5);
+  transform: translateX(4px);
+  box-shadow: 0 4px 14px rgba(88, 66, 148, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.sidebar-item:hover .sidebar-item-icon {
+  transform: scale(1.1);
+  color: #745BB8;
+}
+
+.sidebar-item.active {
+  color: #FFFFFF !important;
+  background: linear-gradient(135deg, #4E3A70 0%, #6E56B0 100%) !important;
+  font-weight: 700 !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 6px 20px -2px rgba(78, 58, 112, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+  transform: translateX(2px);
+}
+
+.sidebar-item.active .sidebar-item-icon {
+  color: #FFFFFF !important;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+}
+
+.sidebar-item.active .sidebar-item-text {
+  color: #FFFFFF !important;
+}
+
+/* FICHA INSTITUCIONAL COMPACTA EN EL SIDEBAR CON SOFT UI */
+.sidebar-footer-badge {
+  margin-top: auto;
+  padding: 0.75rem 0.85rem;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(167, 139, 250, 0.45);
+  border-radius: var(--radius-md);
+  box-shadow: 0 6px 18px rgba(88, 66, 148, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sidebar-footer-badge:hover {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(124, 98, 196, 0.65);
+  box-shadow: 0 8px 22px rgba(88, 66, 148, 0.18), inset 0 1px 0 rgba(255, 255, 255, 1);
+  transform: translateY(-1px);
+}
+
+.sidebar-footer-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #584294 0%, #745BB8 100%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #FFFFFF;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(88, 66, 148, 0.3);
+}
+
+.sidebar-footer-info {
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.sidebar-footer-title {
+  color: #24285B;
+  font-weight: 800;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-footer-desc {
+  color: #4E3A70;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 0.15rem;
+}
+
+/* ESTADO COLAPSADO EN ESCRITORIO */
+#app.sidebar-collapsed #sidebar-container {
+  flex: 0 0 var(--sidebar-collapsed-width);
+  width: var(--sidebar-collapsed-width);
+  min-width: var(--sidebar-collapsed-width);
+  max-width: var(--sidebar-collapsed-width);
+}
+
+#app.sidebar-collapsed .sidebar {
+  padding: 1.25rem 0.5rem;
+}
+
+#app.sidebar-collapsed .sidebar-section-title,
+#app.sidebar-collapsed .sidebar-item-text,
+#app.sidebar-collapsed .sidebar-footer-badge {
+  display: none;
+}
+
+#app.sidebar-collapsed .sidebar-item {
+  justify-content: center;
+  padding: 0.75rem 0;
+}
+
+/* ENVOLTORIO DE CONTENIDO Y FOOTER */
+.main-wrapper {
+  margin-top: var(--navbar-height);
+  margin-left: 0;
+  width: 100%;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - var(--navbar-height));
+  min-height: calc(100dvh - var(--navbar-height));
+  box-sizing: border-box;
+  transition: margin-left var(--transition-normal), width var(--transition-normal);
+}
+
+/* Cuando la barra lateral está presente en escritorio */
+#app.has-sidebar .main-wrapper {
+  margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+}
+
+#app.has-sidebar.sidebar-collapsed .main-wrapper {
+  margin-left: var(--sidebar-collapsed-width);
+  width: calc(100% - var(--sidebar-collapsed-width));
+}
+
+/* CONTENIDO PRINCIPAL */
+.main-content {
+  flex: 1;
+  padding: 2rem 2.25rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  transition: all var(--transition-normal);
+}
+
+/* ==============================================================================
+   FOOTER INFERIOR SOFT UI TRASLÚCIDO COMPACTO
+   ============================================================================== */
+.footer {
+  margin-top: auto;
+  position: relative;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(247, 243, 254, 0.35) 100%) !important;
+  backdrop-filter: blur(14px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(160%) !important;
+  border-top: 1px solid rgba(167, 139, 250, 0.22) !important;
+  box-shadow: 0 -2px 16px rgba(88, 66, 148, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+  padding: 0.75rem 1rem !important;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.footer-legal-text {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--soft-indigo-heading, #24285B);
+  letter-spacing: 0.2px;
+  line-height: 1.4;
+  margin: 0;
+  opacity: 0.88;
+}
+
+/* OVERLAY MÓVIL */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  top: var(--navbar-height);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(36, 40, 91, 0.35);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1000;
+}
+
+/* ==============================================================================
+   MODO TUTOR: En escritorio (> 900px) sin sidebar, todo el ancho para el portal.
+   En móvil (<= 900px), el botón hamburguesa despliega el drawer del portal familiar.
+   ============================================================================== */
+@media (min-width: 901px) {
+  #app.tutor-mode #sidebar-container,
+  #app.tutor-mode .sidebar,
+  #app.tutor-mode .navbar-left .btn-burger,
+  #app.tutor-mode .btn-burger-tutor {
+    display: none !important;
+    flex: 0 0 0px !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+  }
+
+  #app.tutor-mode .main-wrapper {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}
+
+#app.tutor-mode .app-container {
+  width: 100%;
+}
+
+#app.tutor-mode .main-wrapper {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* ==============================================================================
+   MENÚ DESPLEGABLE DEL TUTOR:
+   - EN PC (> 900px): Los módulos se despliegan en fila HORIZONTAL.
+   - EN CELULAR (<= 900px): Los módulos se despliegan en columna VERTICAL y centrados.
+   ============================================================================== */
+.tutor-nav-dropdown-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.nav-link-public-desktop,
+.nav-link-tutor-desktop {
+  display: inline-flex !important;
+  align-items: center;
+  margin-left: 0.5rem;
+  margin-right: 0.25rem;
+  color: var(--soft-text-body, #696F8C);
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.42rem 0.95rem;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-link-public-desktop:hover,
+.nav-link-public-desktop.active,
+.nav-link-tutor-desktop:hover,
+.nav-link-tutor-desktop.active {
+  color: var(--soft-purple-primary, #584294);
+  background: rgba(241, 236, 250, 0.75);
+  border-color: rgba(167, 139, 250, 0.35);
+  box-shadow: 0 2px 8px rgba(88, 66, 148, 0.06);
+}
+
+.tutor-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.42rem 0.95rem;
+  border-radius: var(--radius-full);
+  color: var(--soft-text-body, #696F8C);
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(167, 139, 250, 0.28);
+  box-shadow: 0 2px 6px rgba(88, 66, 148, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.tutor-menu-trigger:hover,
+.tutor-menu-trigger.active,
+.tutor-menu-trigger.menu-open {
+  color: var(--soft-purple-primary, #584294);
+  background: linear-gradient(135deg, #F1ECFA 0%, #E4DCF7 100%);
+  border-color: rgba(124, 98, 196, 0.55);
+  box-shadow: 0 0 12px rgba(124, 98, 196, 0.22);
+  transform: translateY(-1px);
+}
+
+.tutor-menu-trigger svg:last-child {
+  transition: transform var(--transition-fast);
+}
+
+.tutor-menu-trigger.menu-open svg:last-child {
+  transform: rotate(180deg);
+}
+
+/* ==============================================================================
+   MENÚ DESPLEGABLE INSTITUCIONAL Y DEL TUTOR (MEGA-MENÚ SOFT UI TRASLÚCIDO)
+   ============================================================================== */
+.tutor-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  background: 
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(246, 238, 255, 0.82) 45%, rgba(235, 218, 254, 0.90) 100%),
+    url('/assets/home-background.jpg') no-repeat center top / cover !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1.5px solid rgba(167, 139, 250, 0.42) !important;
+  border-radius: var(--radius-md);
+  box-shadow: 0 20px 48px -6px rgba(88, 66, 148, 0.22), 0 8px 18px -4px rgba(36, 40, 91, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+  z-index: 1200;
+  animation: tutorDropdownSlide 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes tutorDropdownSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.tutor-dropdown-header {
+  padding: 0.65rem 0.95rem 0.5rem 0.95rem;
+  border-bottom: 1.5px solid rgba(167, 139, 250, 0.3) !important;
+  margin-bottom: 0.75rem;
+}
+
+.tutor-dropdown-header-title {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #24285B !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.tutor-dropdown-header-sub {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #584294 !important;
+  margin-top: 0.15rem;
+}
+
+.tutor-dropdown-item-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, #F3EEFC 0%, #E6D8FA 100%) !important;
+  border: 1px solid rgba(167, 139, 250, 0.4) !important;
+  color: #584294 !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 2px 8px rgba(88, 66, 148, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+  transition: all 0.22s ease !important;
+}
+
+.tutor-dropdown-item-text {
+  min-width: 0;
+}
+
+.tutor-dropdown-item-title {
+  font-size: 0.92rem !important;
+  font-weight: 750 !important;
+  color: #24285B !important;
+  line-height: 1.3 !important;
+  transition: color 0.2s ease !important;
+}
+
+.tutor-dropdown-item-desc {
+  font-size: 0.76rem !important;
+  font-weight: 500 !important;
+  color: #696F8C !important;
+  margin-top: 0.25rem !important;
+  line-height: 1.38 !important;
+}
+
+/* EN ESCRITORIO / PC (> 900px): MEGA-MENÚ HORIZONTAL DE ANCHO COMPLETO (EDGE-TO-EDGE) */
+@media (min-width: 901px) {
+  .tutor-dropdown-menu,
+  #app.tutor-mode .tutor-dropdown-menu {
+    position: fixed !important;
+    top: var(--navbar-height) !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 100% !important;
+    background: 
+      linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(248, 244, 255, 0.76) 40%, rgba(238, 226, 254, 0.86) 100%),
+      url('/assets/home-background.jpg') no-repeat center top / cover !important;
+    backdrop-filter: blur(18px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(180%) !important;
+    border-radius: 0 0 28px 28px !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: 1.5px solid rgba(167, 139, 250, 0.45) !important;
+    box-shadow: 0 22px 52px -8px rgba(88, 66, 148, 0.25), 0 8px 20px -4px rgba(36, 40, 91, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+    z-index: 1200 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .tutor-dropdown-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1.35rem 2.25rem 1.65rem 2.25rem;
+    box-sizing: border-box;
+  }
+
+  .tutor-dropdown-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0 0.85rem 0;
+    margin-bottom: 1.25rem;
+    border-bottom: 1.5px solid rgba(167, 139, 250, 0.32) !important;
+  }
+
+  .tutor-dropdown-header-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #24285B !important;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+
+  .tutor-dropdown-header-sub {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.85rem;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(167, 139, 250, 0.38);
+    border-radius: 9999px;
+    font-size: 0.76rem;
+    font-weight: 650;
+    color: #584294 !important;
+    box-shadow: 0 2px 6px rgba(88, 66, 148, 0.06);
+    margin-top: 0;
+  }
+
+  .tutor-dropdown-list {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)) !important;
+    gap: 1.1rem !important;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Grid simétrica para el menú público (5 módulos exactos en pantalla grande) */
+  @media (min-width: 1150px) {
+    #public-dropdown-menu .tutor-dropdown-list {
+      grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    }
+  }
+
+  @media (min-width: 901px) and (max-width: 1149px) {
+    #public-dropdown-menu .tutor-dropdown-list {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+  }
+
+  /* Grid simétrica para el portal del tutor (11 módulos clínicos y de gestión) */
+  @media (min-width: 1200px) {
+    #tutor-dropdown-menu .tutor-dropdown-list {
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    }
+  }
+
+  @media (min-width: 901px) and (max-width: 1199px) {
+    #tutor-dropdown-menu .tutor-dropdown-list {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+  }
+
+  .tutor-dropdown-item {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 0.95rem !important;
+    padding: 1rem 1.15rem !important;
+    background: rgba(255, 255, 255, 0.82) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(167, 139, 250, 0.35) !important;
+    border-radius: 16px !important;
+    text-decoration: none !important;
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-shadow: 0 4px 14px rgba(88, 66, 148, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+    box-sizing: border-box !important;
+    cursor: pointer !important;
+    position: relative !important;
+  }
+
+  .tutor-dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.98) !important;
+    border-color: rgba(124, 98, 196, 0.65) !important;
+    box-shadow: 0 10px 28px -4px rgba(88, 66, 148, 0.20), 0 0 0 1px rgba(167, 139, 250, 0.45), inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+    transform: translateY(-3px) !important;
+  }
+
+  .tutor-dropdown-item:hover .tutor-dropdown-item-icon {
+    background: linear-gradient(135deg, #584294 0%, #745BB8 100%) !important;
+    color: #FFFFFF !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    transform: scale(1.08) !important;
+    box-shadow: 0 4px 14px rgba(88, 66, 148, 0.35) !important;
+  }
+
+  .tutor-dropdown-item:hover .tutor-dropdown-item-title {
+    color: #584294 !important;
+  }
+
+  .tutor-dropdown-item.active {
+    background: rgba(255, 255, 255, 0.96) !important;
+    border: 1.5px solid var(--soft-purple-primary, #584294) !important;
+    box-shadow: 0 6px 20px rgba(88, 66, 148, 0.18), inset 0 0 0 1px rgba(167, 139, 250, 0.35) !important;
+  }
+
+  .tutor-dropdown-item.active .tutor-dropdown-item-icon {
+    background: linear-gradient(135deg, #584294 0%, #745BB8 100%) !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 4px 12px rgba(88, 66, 148, 0.35) !important;
+  }
+
+  .tutor-dropdown-item.active .tutor-dropdown-item-title {
+    color: var(--soft-purple-primary, #584294) !important;
+    font-weight: 800 !important;
+  }
+
+  /* Ocultar item "Inicio" dentro del dropdown de PC porque ya está visible en la barra horizontal */
+  .tutor-dropdown-item-mobile-only {
+    display: none !important;
+  }
+}
+
+/* EN CELULAR / MÓVIL (<= 900px): DISEÑO VERTICAL CENTRADO Y SIN COLISIÓN */
+@media (max-width: 900px) {
+  /* Ocultar enlace de texto "Inicio" de la barra móvil para evitar colisión con el logo "PSI APRENDE" */
+  .nav-link-tutor-desktop,
+  .nav-link-public-desktop {
+    display: none !important;
+  }
+
+  /* En pantallas móviles (<= 900px), el trigger de menú horizontal se oculta por completo
+     para todos los modos (incluyendo tutor), ya que la navegación se realiza exclusivamente
+     mediante el botón hamburguesa [ ☰ ] en el extremo izquierdo */
+  #app.tutor-mode .tutor-nav-dropdown-wrapper,
+  #app.tutor-mode .tutor-menu-trigger,
+  .tutor-menu-trigger {
+    display: none !important;
+  }
+
+  .tutor-nav-dropdown-wrapper {
+    display: block !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Desplegable móvil centrado que nunca se corta a la izquierda ni a la derecha */
+  .tutor-dropdown-menu,
+  #app.tutor-mode .tutor-dropdown-menu {
+    position: fixed !important;
+    top: calc(var(--navbar-height) + 8px) !important;
+    left: 0.75rem !important;
+    right: 0.75rem !important;
+    width: auto !important;
+    min-width: unset !important;
+    max-width: calc(100vw - 1.5rem) !important;
+    padding: 0.85rem !important;
+    border-radius: 20px !important;
+    background: 
+      linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(246, 238, 255, 0.85) 45%, rgba(235, 218, 254, 0.92) 100%),
+      url('/assets/home-background.jpg') no-repeat center top / cover !important;
+    backdrop-filter: blur(16px) saturate(170%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(170%) !important;
+    border: 1.5px solid rgba(167, 139, 250, 0.45) !important;
+    box-shadow: 0 16px 40px rgba(36, 40, 91, 0.25) !important;
+    box-sizing: border-box !important;
+    max-height: calc(100dvh - var(--navbar-height) - 20px) !important;
+    overflow-y: auto !important;
+  }
+
+  .tutor-dropdown-inner {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .tutor-dropdown-header {
+    padding: 0.4rem 0.65rem 0.5rem 0.65rem !important;
+    margin-bottom: 0.65rem !important;
+    border-bottom: 1.5px solid rgba(167, 139, 250, 0.3) !important;
+  }
+
+  .tutor-dropdown-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.45rem !important;
+    width: 100% !important;
+  }
+
+  .tutor-dropdown-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.85rem !important;
+    padding: 0.75rem 0.95rem !important;
+    border-radius: 14px !important;
+    background: rgba(255, 255, 255, 0.78) !important;
+    backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(167, 139, 250, 0.35) !important;
+    text-decoration: none !important;
+    box-sizing: border-box !important;
+  }
+
+  .tutor-dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-color: rgba(124, 98, 196, 0.6) !important;
+  }
+
+  .tutor-dropdown-item.active {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1.5px solid var(--soft-purple-primary, #584294) !important;
+  }
+
+  /* En móvil, mostrar la opción "Inicio Institucional" dentro del menú desplegable */
+  .tutor-dropdown-item-mobile-only {
+    display: flex !important;
+    border-top: 1px dashed rgba(167, 139, 250, 0.45) !important;
+    margin-top: 0.35rem !important;
+    padding-top: 0.75rem !important;
+  }
+}
+
+/* RESPONSIVE (< 900px): ADAPTACIÓN HEADER Y SIDEBAR DRAWER */
+@media (max-width: 900px) {
+  .navbar {
+    padding: 0 1rem;
+  }
+
+  .navbar-left {
+    gap: 0.65rem;
+    min-width: 0;
+  }
+
+  .btn-burger {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    display: flex !important;
+  }
+
+  /* El botón hamburguesa público se activa en móviles */
+  .btn-burger-public {
+    display: flex !important;
+  }
+
+  /* El botón hamburguesa del tutor se activa en pantallas móviles */
+  .btn-burger-tutor {
+    display: flex !important;
+  }
+
+  .navbar-brand-link {
+    gap: 0.55rem;
+  }
+
+  .brand-logo-img {
+    height: 34px;
+  }
+
+  .brand-title {
+    font-size: 1.05rem;
+    white-space: nowrap;
+  }
+
+  /* Ocultar subtítulo institucional largo para evitar quiebres y desbordes */
+  .brand-subtitle {
+    display: none !important;
+  }
+
+  /* Ocultar enlaces de navegación horizontal genéricos en móvil */
+  .navbar-menu .nav-link {
+    display: none !important;
+  }
+
+  /* En móvil, el menú se acciona desde el botón hamburguesa */
+  .navbar-menu .nav-link-public-desktop,
+  .navbar-menu .nav-link-tutor-desktop,
+  .navbar-menu .tutor-menu-trigger {
+    display: none !important;
+  }
+
+  .navbar-menu {
+    gap: 0.5rem;
+  }
+
+  /* Indicador en línea compacto en pantallas medianas / tablets para evitar solapamientos */
+  #navbar-status-text {
+    display: none !important;
+  }
+
+  .navbar-status-indicator {
+    padding: 0.35rem !important;
+    gap: 0 !important;
+    border-radius: var(--radius-full);
+  }
+
+  .navbar-auth-slot {
+    margin-left: 0;
+  }
+
+  #sidebar-container,
+  #app.has-sidebar #sidebar-container {
+    display: none;
+    position: static;
+    flex: 0 0 0px;
+    width: 0;
+    min-width: 0;
+    max-width: 0;
+    height: 0;
+    overflow: hidden;
+  }
+
+  #app.mobile-sidebar-open #sidebar-container,
+  #app.has-sidebar.mobile-sidebar-open #sidebar-container {
+    display: block !important;
+    position: fixed !important;
+    top: var(--navbar-height) !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    min-width: 100vw !important;
+    max-width: 100vw !important;
+    height: calc(100vh - var(--navbar-height)) !important;
+    height: calc(100dvh - var(--navbar-height)) !important;
+    overflow: visible !important;
+    z-index: 1001 !important;
+    background: transparent !important;
+    pointer-events: none;
+  }
+
+  #app.mobile-sidebar-open #sidebar-container .sidebar-backdrop,
+  #app.mobile-sidebar-open #sidebar-container .sidebar {
+    pointer-events: auto;
+  }
+
+  .main-wrapper,
+  #app.has-sidebar .main-wrapper {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: var(--navbar-height);
+    bottom: 0;
+    left: 0;
+    width: min(85vw, 290px);
+    height: calc(100vh - var(--navbar-height));
+    height: calc(100dvh - var(--navbar-height));
+    transform: translateX(-100%);
+    box-shadow: none;
+    z-index: 1002;
+    transition: transform var(--transition-normal);
+  }
+
+  #app.mobile-sidebar-open .sidebar {
+    transform: translateX(0);
+    box-shadow: 8px 0 32px rgba(88, 66, 148, 0.22) !important;
+    border-right: 1px solid rgba(167, 139, 250, 0.35) !important;
+  }
+
+  #app.mobile-sidebar-open .sidebar-backdrop {
+    display: block !important;
+  }
+
+  .main-content {
+    padding: 1.25rem 0.85rem;
+  }
+}
+
+/* SMARTPHONES Y PANTALLAS PEQUEÑAS (<= 600px) */
+@media (max-width: 600px) {
+  .navbar {
+    padding: 0 0.65rem;
+    gap: 0.5rem;
+  }
+
+  .navbar-left {
+    gap: 0.5rem;
+    flex-shrink: 0 !important;
+    min-width: max-content;
+  }
+
+  .navbar-brand-link {
+    gap: 0.45rem;
+    flex-shrink: 0 !important;
+    min-width: max-content;
+  }
+
+  .brand-title {
+    font-size: 0.96rem;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  .brand-logo-img {
+    height: 30px;
+    flex-shrink: 0 !important;
+  }
+
+  /* Ocultar texto y badge del usuario en el header móvil, dejando el avatar mini interactivo */
+  .navbar-user-text {
+    display: none !important;
+  }
+
+  .navbar-user-btn {
+    padding: 0.2rem !important;
+    background: transparent !important;
+    border: none !important;
+  }
+
+  .navbar-user-pill {
+    gap: 0.35rem !important;
+  }
+
+  /* Botón Salir compacto en móvil */
+  .btn-logout .btn-logout-label {
+    display: none !important;
+  }
+
+  .btn-logout {
+    padding: 0.38rem 0.5rem !important;
+  }
+
+  /* Botón de instalación PWA: compacto solo icono en móvil */
+  .btn-install-pwa {
+    padding: 0.38rem !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    justify-content: center !important;
+  }
+
+  .btn-install-pwa span {
+    display: none !important;
+  }
+
+  /* Botón de acceso al portal garantizado en móvil */
+  .btn-access-portal {
+    padding: 0.38rem 0.75rem !important;
+    font-size: 0.8rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    position: relative !important;
+    z-index: 10 !important;
+  }
+}
+
+/* SMARTPHONES PEQUEÑOS (<= 420px) */
+@media (max-width: 420px) {
+  .navbar-status-indicator {
+    display: none !important;
+  }
+
+  .btn-install-pwa {
+    display: none !important;
+  }
+}
+
+/* SMARTPHONES ULTRA-COMPACTOS (<= 380px) */
+@media (max-width: 380px) {
+  .navbar {
+    padding: 0 0.5rem;
+  }
+
+  .navbar-left {
+    gap: 0.4rem;
+  }
+
+  .brand-title {
+    font-size: 0.88rem;
+  }
+
+  .brand-logo-img {
+    height: 28px;
+  }
+
+  .btn-access-portal {
+    padding: 0.32rem 0.55rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  .btn-access-portal .btn-access-text {
+    font-size: 0.75rem;
+  }
+}
+
+/* ==============================================================================
+   CONTENCIÓN DE DESPLAZAMIENTO HORIZONTAL EN MÓVIL (EVITA DESPLAZAMIENTO DE LA PÁGINA)
+   ============================================================================== */
+.tabs-scroll-container,
+.folder-pills-scroll-container,
+.horizontal-scroll-row {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  overscroll-behavior-x: contain !important;
+  overscroll-behavior-y: none !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-x !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.tabs-scroll-container::-webkit-scrollbar,
+.folder-pills-scroll-container::-webkit-scrollbar,
+.horizontal-scroll-row::-webkit-scrollbar {
+  height: 4px;
+}
+
+.tabs-scroll-container::-webkit-scrollbar-thumb,
+.folder-pills-scroll-container::-webkit-scrollbar-thumb,
+.horizontal-scroll-row::-webkit-scrollbar-thumb {
+  background: rgba(78, 58, 112, 0.2);
+  border-radius: 4px;
+}
+
+/* ==============================================================================
+   FONDO INSTITUCIONAL PERSONALIZADO GLOBAL
+   ============================================================================== */
+body {
+  background: url('/assets/home-background.jpg') no-repeat center center fixed !important;
+  background-size: cover !important;
+}
+
+#app {
+  background: transparent !important;
+}
+
+.main-wrapper {
+  background: transparent !important;
+}
+
+#navbar-container {
+  background: transparent !important;
+}
+
+.navbar {
+  background: 
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(246, 238, 255, 0.36) 45%, rgba(235, 218, 254, 0.48) 100%),
+    url('/assets/home-background.jpg') no-repeat center top / cover !important;
+  backdrop-filter: blur(8px) saturate(170%) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(170%) !important;
+  border-bottom: 1.5px solid rgba(167, 139, 250, 0.42) !important;
+  box-shadow: 0 4px 24px -2px rgba(88, 66, 148, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+}
+
+.soft-hero-surface {
+  background: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(237, 232, 245, 0.85) !important;
+  box-shadow: 0 12px 36px rgba(88, 66, 148, 0.08) !important;
+}
+
+.soft-card-static {
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(237, 232, 245, 0.9) !important;
+  box-shadow: 0 8px 24px rgba(88, 66, 148, 0.06) !important;
+}
+
+.soft-room-card {
+  background: rgba(255, 255, 255, 0.94) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+.soft-kpi-card {
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+.footer {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(247, 243, 254, 0.35) 100%) !important;
+  backdrop-filter: blur(14px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(160%) !important;
+  border-top: 1px solid rgba(167, 139, 250, 0.22) !important;
+  box-shadow: 0 -2px 16px rgba(88, 66, 148, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+  padding: 0.75rem 1rem !important;
+}
+
+
+

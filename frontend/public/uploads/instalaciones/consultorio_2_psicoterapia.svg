@@ -1,0 +1,39 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500' width='100%' height='100%'>
+  <defs>
+    <linearGradient id='c2Wall' x1='0%' y1='0%' x2='0%' y2='100%'>
+      <stop offset='0%' stop-color='#F8F6FE'/>
+      <stop offset='100%' stop-color='#EFEAF8'/>
+    </linearGradient>
+  </defs>
+
+  <rect width='800' height='360' fill='url(#c2Wall)'/>
+  <rect y='360' width='800' height='140' fill='#E2E8F0'/>
+
+  <!-- Placa Consultorio 2 -->
+  <rect x='270' y='40' width='260' height='48' rx='10' fill='#584294'/>
+  <text x='400' y='68' font-family='system-ui, sans-serif' font-weight='800' font-size='14' fill='#FFFFFF' text-anchor='middle'>CONSULTORIO 2 · PSICOTERAPIA</text>
+  <text x='400' y='82' font-family='system-ui, sans-serif' font-weight='500' font-size='9' fill='#E9D5FF' text-anchor='middle'>Individual, Pareja y Dinámica Familiar</text>
+
+  <!-- Lámpara cálida de pie para ambiente relajado -->
+  <line x1='120' y1='140' x2='120' y2='390' stroke='#334155' stroke-width='4'/>
+  <polygon points='100,140 140,140 150,190 90,190' fill='#FEF3C7' stroke='#F59E0B' stroke-width='2'/>
+  <ellipse cx='120' cy='390' rx='20' ry='6' fill='#334155'/>
+
+  <!-- Sillones terapéuticos de conversación -->
+  <!-- Sillón terapeuta -->
+  <rect x='200' y='270' width='120' height='85' rx='16' fill='#584294'/>
+  <rect x='215' y='285' width='90' height='60' rx='10' fill='#7B66B5'/>
+
+  <!-- Mesa de centro baja con pañuelos y notas -->
+  <ellipse cx='400' cy='370' rx='60' ry='25' fill='#FFFFFF' stroke='#CBD5E1' stroke-width='2'/>
+  <rect x='385' y='350' width='30' height='18' rx='4' fill='#E2E8F0'/>
+
+  <!-- Sofá doble para familiares o pacientes -->
+  <rect x='480' y='265' width='180' height='90' rx='16' fill='#15968D'/>
+  <rect x='495' y='280' width='150' height='65' rx='10' fill='#2DB9AE'/>
+
+  <!-- Cuadro abstracto relajante en la pared -->
+  <rect x='340' y='120' width='120' height='90' rx='8' fill='#FFFFFF' stroke='#CBD5E1' stroke-width='2'/>
+  <circle cx='390' cy='160' r='25' fill='#E9D5FF'/>
+  <circle cx='415' cy='170' r='18' fill='#CCFBF1'/>
+</svg>

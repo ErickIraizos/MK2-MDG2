@@ -1,0 +1,37 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500' width='100%' height='100%'>
+  <defs>
+    <linearGradient id='c3Wall' x1='0%' y1='0%' x2='0%' y2='100%'>
+      <stop offset='0%' stop-color='#FFFBEB'/>
+      <stop offset='100%' stop-color='#FEF3C7'/>
+    </linearGradient>
+  </defs>
+
+  <rect width='800' height='360' fill='url(#c3Wall)'/>
+  <rect y='360' width='800' height='140' fill='#E2E8F0'/>
+
+  <!-- Placa Consultorio 3 -->
+  <rect x='260' y='40' width='280' height='48' rx='10' fill='#D97706'/>
+  <text x='400' y='68' font-family='system-ui, sans-serif' font-weight='800' font-size='13' fill='#FFFFFF' text-anchor='middle'>CONSULTORIO 3 · PSICOGERONTOLOGÍA</text>
+  <text x='400' y='82' font-family='system-ui, sans-serif' font-weight='500' font-size='9' fill='#FEF3C7' text-anchor='middle'>Programa Horizontes Plateados · Estimulación VGI</text>
+
+  <!-- Mesa amplia de trabajo neurocognitivo -->
+  <rect x='220' y='280' width='260' height='95' rx='12' fill='#FFFFFF' stroke='#D97706' stroke-width='2'/>
+
+  <!-- Sillón ergonómico de descanso -->
+  <rect x='100' y='270' width='95' height='90' rx='14' fill='#B45309'/>
+  <rect x='110' y='285' width='75' height='65' rx='8' fill='#D97706'/>
+
+  <!-- Materiales de memoria y estimulación cognitiva (MoCA, puzzles) -->
+  <rect x='250' y='295' width='50' height='30' rx='4' fill='#584294'/>
+  <text x='275' y='314' font-family='system-ui, sans-serif' font-weight='700' font-size='8' fill='#FFFFFF' text-anchor='middle'>MoCA</text>
+
+  <rect x='320' y='295' width='50' height='30' rx='4' fill='#15968D'/>
+  <text x='345' y='314' font-family='system-ui, sans-serif' font-weight='700' font-size='8' fill='#FFFFFF' text-anchor='middle'>VGI</text>
+
+  <circle cx='410' cy='310' r='12' fill='#F59E0B'/>
+
+  <!-- Ventana amplia con vista tranquila -->
+  <rect x='550' y='100' width='180' height='180' rx='10' fill='#E0F2FE' stroke='#94A3B8' stroke-width='2'/>
+  <line x1='640' y1='100' x2='640' y2='280' stroke='#94A3B8' stroke-width='2'/>
+  <line x1='550' y1='190' x2='730' y2='190' stroke='#94A3B8' stroke-width='2'/>
+</svg>

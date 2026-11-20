@@ -1,0 +1,45 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500' width='100%' height='100%'>
+  <defs>
+    <linearGradient id='c1Wall' x1='0%' y1='0%' x2='0%' y2='100%'>
+      <stop offset='0%' stop-color='#F0FDF4'/>
+      <stop offset='100%' stop-color='#E8F5E9'/>
+    </linearGradient>
+  </defs>
+
+  <rect width='800' height='360' fill='url(#c1Wall)'/>
+  <rect y='360' width='800' height='140' fill='#E2E8F0'/>
+
+  <!-- Placa Consultorio 1 -->
+  <rect x='270' y='40' width='260' height='48' rx='10' fill='#15968D'/>
+  <text x='400' y='68' font-family='system-ui, sans-serif' font-weight='800' font-size='14' fill='#FFFFFF' text-anchor='middle'>CONSULTORIO 1 · INFANTIL</text>
+  <text x='400' y='82' font-family='system-ui, sans-serif' font-weight='500' font-size='9' fill='#CCFBF1' text-anchor='middle'>Neuropsicología &amp; Psicopedagogía</text>
+
+  <!-- Estante con Baterías WISC-V, CUMANES y material didáctico -->
+  <rect x='520' y='110' width='220' height='250' rx='8' fill='#FFFFFF' stroke='#94A3B8' stroke-width='2'/>
+  <line x1='520' y1='170' x2='740' y2='170' stroke='#CBD5E1' stroke-width='3'/>
+  <line x1='520' y1='230' x2='740' y2='230' stroke='#CBD5E1' stroke-width='3'/>
+  <line x1='520' y1='290' x2='740' y2='290' stroke='#CBD5E1' stroke-width='3'/>
+
+  <!-- Cajas de pruebas psicométricas -->
+  <rect x='540' y='125' width='55' height='40' rx='4' fill='#584294'/>
+  <text x='567' y='148' font-family='system-ui, sans-serif' font-weight='700' font-size='8' fill='#FFFFFF' text-anchor='middle'>WISC-V</text>
+
+  <rect x='610' y='125' width='60' height='40' rx='4' fill='#15968D'/>
+  <text x='640' y='148' font-family='system-ui, sans-serif' font-weight='700' font-size='7' fill='#FFFFFF' text-anchor='middle'>CUMANES</text>
+
+  <rect x='540' y='185' width='55' height='40' rx='4' fill='#D97706'/>
+  <text x='567' y='208' font-family='system-ui, sans-serif' font-weight='700' font-size='8' fill='#FFFFFF' text-anchor='middle'>BANFE-2</text>
+
+  <rect x='610' y='185' width='55' height='40' rx='4' fill='#EC4899'/>
+  <text x='637' y='208' font-family='system-ui, sans-serif' font-weight='700' font-size='8' fill='#FFFFFF' text-anchor='middle'>ADOS-2</text>
+
+  <!-- Mesa lúdica ergonómica para evaluación infantil -->
+  <ellipse cx='260' cy='350' rx='140' ry='60' fill='#FFFFFF' stroke='#15968D' stroke-width='3'/>
+  <!-- Sillas terapéuticas ergonómicas -->
+  <rect x='160' y='280' width='45' height='60' rx='8' fill='#2DB9AE'/>
+  <rect x='315' y='280' width='45' height='60' rx='8' fill='#584294'/>
+
+  <!-- Material de trazos y cubos en la mesa -->
+  <rect x='240' y='320' width='35' height='25' rx='3' fill='#F59E0B'/>
+  <circle cx='290' cy='335' r='8' fill='#3B82F6'/>
+</svg>

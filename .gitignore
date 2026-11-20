@@ -1,0 +1,43 @@
+# Dependencias
+node_modules/
+*/node_modules/
+
+# Entornos y Secretos
+.env
+*/.env
+*.local
+
+# Bases de Datos Locales
+*.db
+*.sqlite
+*.db-journal
+*.db-wal
+*.db-shm
+backend/database/sqlite/psi_aprende.db
+backend/database/sqlite/psi_aprende.db-wal
+backend/database/sqlite/psi_aprende.db-shm
+
+# Sesiones de WhatsApp
+.wwebjs_auth/
+*/.wwebjs_auth/
+.wwebjs_cache/
+*/.wwebjs_cache/
+.scheduled_reminders.json
+
+# Builds y Bundles
+dist/
+*/dist/
+build/
+*/build/
+
+# Logs del sistema
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Sistema Operativo y Editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
