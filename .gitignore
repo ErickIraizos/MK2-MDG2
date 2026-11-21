@@ -13,9 +13,13 @@ node_modules/
 *.db-journal
 *.db-wal
 *.db-shm
+backend/database/sqlite/*.db
 backend/database/sqlite/psi_aprende.db
 backend/database/sqlite/psi_aprende.db-wal
 backend/database/sqlite/psi_aprende.db-shm
+
+# Archivos Locales Migrados a Supabase Storage
+backend/uploads/
 
 # Sesiones de WhatsApp
 .wwebjs_auth/

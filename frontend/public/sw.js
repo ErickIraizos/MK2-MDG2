@@ -1,4 +1,4 @@
-const CACHE_NAME = 'psi-aprende-cache-v6';
+const CACHE_NAME = 'psi-aprende-cache-v7';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -42,9 +42,13 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Bypass obligatorio para peticiones de API y llamadas externas
-  if (url.pathname.startsWith('/api') || url.hostname.includes('groq.com')) {
-    return; // Peticiones dinámicas van directo a la red sin tocar caché
+  // Bypass obligatorio para peticiones de API, Signed URLs privadas de Supabase Storage y llamadas externas IA
+  if (
+    url.pathname.startsWith('/api') ||
+    url.hostname.includes('groq.com') ||
+    url.pathname.includes('/storage/v1/object/sign/')
+  ) {
+    return; // Peticiones dinámicas/firmadas van directo a la red sin tocar caché
   }
 
   // ESTRATEGIA NETWORK-FIRST PARA NAVEGACIÓN Y DOCUMENTOS HTML (index.html, /)

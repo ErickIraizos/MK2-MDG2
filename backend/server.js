@@ -36,6 +36,9 @@ import materialRoutes from './routes/materialRoutes.js';
 
 const app = express();
 
+// Confiar en el primer proxy inverso (Nginx en EC2) para resolver req.ip / X-Forwarded-For
+app.set('trust proxy', 1);
+
 // 1. Middlewares globales
 app.use(compression({
   filter: (req, res) => {
