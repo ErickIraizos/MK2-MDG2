@@ -556,7 +556,12 @@ export class PostgresPaymentRepository extends IPaymentRepository {
       banco_nombre: map['PAGO_BANCO_NOMBRE'] || 'Banco Unión S.A. / BCP Bolivia',
       cuenta_titular: map['PAGO_CUENTA_TITULAR'] || 'Centro Psicopedagógico y Psicológico PSI Aprende S.R.L.',
       cuenta_numero: map['PAGO_CUENTA_NUMERO'] || '10000049281726 (Cta. Corriente M/N Bolivianos)',
-      instrucciones: map['PAGO_QR_INSTRUCCIONES'] || 'Escanee el código QR desde su aplicación móvil de banca (Simple QR). En la glosa ingrese el nombre del paciente y adjunte su comprobante.'
+      instrucciones: map['PAGO_QR_INSTRUCCIONES'] || 'Escanee el código QR desde su aplicación móvil de banca (Simple QR). En la glosa ingrese el nombre del paciente y adjunte su comprobante.',
+      PAGO_QR_IMAGEN: map['PAGO_QR_IMAGEN'] || null,
+      PAGO_BANCO_NOMBRE: map['PAGO_BANCO_NOMBRE'] || 'Banco Unión S.A. / BCP Bolivia',
+      PAGO_CUENTA_TITULAR: map['PAGO_CUENTA_TITULAR'] || 'Centro Psicopedagógico y Psicológico PSI Aprende S.R.L.',
+      PAGO_CUENTA_NUMERO: map['PAGO_CUENTA_NUMERO'] || '10000049281726 (Cta. Corriente M/N Bolivianos)',
+      PAGO_QR_INSTRUCCIONES: map['PAGO_QR_INSTRUCCIONES'] || 'Escanee el código QR desde su aplicación móvil de banca (Simple QR). En la glosa ingrese el nombre del paciente y adjunte su comprobante.'
     };
   }
 
