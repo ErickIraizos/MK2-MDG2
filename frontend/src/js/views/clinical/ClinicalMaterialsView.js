@@ -278,6 +278,14 @@ export class ClinicalMaterialsView {
                       const isAuthor = Number(file.subido_por_usuario_id) === Number(this.user.id);
                       const isAdmin = this.user.rol === 'ADMIN';
                       const canDelete = isAuthor || isAdmin;
+                      const token = store.getState().token || localStorage.getItem('psi_token') || '';
+                      const isPublicHttps = Number(file.es_publico) === 1 && String(file.nombre_almacenado || '').startsWith('http');
+                      const viewUrl = isPublicHttps
+                        ? file.nombre_almacenado
+                        : `/api/materials/files/${file.id}/view?token=${encodeURIComponent(token)}`;
+                      const downloadUrl = isPublicHttps
+                        ? file.nombre_almacenado
+                        : `/api/materials/files/${file.id}/view?download=1&token=${encodeURIComponent(token)}`;
 
                       return `
                         <tr>
@@ -335,7 +343,7 @@ export class ClinicalMaterialsView {
                               <button 
                                 type="button" 
                                 class="soft-btn soft-btn-sm soft-btn-lvl-1-muted btn-preview-file" 
-                                data-file-url="/uploads/materiales/${file.nombre_almacenado}"
+                                data-file-url="${this._escapeHtml(viewUrl)}"
                                 data-file-name="${this._escapeHtml(file.nombre_original)}"
                                 data-file-type="${file.tipo_mime}"
                                 title="Previsualizar en pantalla"
@@ -344,7 +352,9 @@ export class ClinicalMaterialsView {
                                 <span>Ver</span>
                               </button>
                               <a 
-                                href="/uploads/materiales/${file.nombre_almacenado}" 
+                                href="${this._escapeHtml(downloadUrl)}" 
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 download="${this._escapeHtml(file.nombre_original)}" 
                                 class="soft-btn soft-btn-sm soft-btn-lvl-1 btn-download-file"
                                 data-file-id="${file.id}"
@@ -664,7 +674,7 @@ export class ClinicalMaterialsView {
                 <label class="soft-label">Archivo clínico: PDF, Imagen o Word <span class="required">*</span></label>
                 <input type="file" id="input-material-file" name="archivo" required class="soft-input" accept=".pdf,image/png,image/jpeg,image/webp,.docx,.doc" style="padding: 0.6rem 0.85rem;" />
                 <small style="color: var(--soft-text-muted); font-size: 0.74rem; display: block; margin-top: 0.25rem;">
-                  Formatos permitidos: PDF, PNG, JPG, Word DOCX hasta 25 MB.
+                  Formatos permitidos: PDF, PNG, JPG, Word DOCX hasta 10 MB.
                 </small>
               </div>
 

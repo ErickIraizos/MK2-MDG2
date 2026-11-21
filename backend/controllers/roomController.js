@@ -1,18 +1,13 @@
 import { RoomService } from '../services/roomService.js';
-import { DatabaseConnection } from '../core/DatabaseConnection.js';
+import { RepositoryFactory } from '../core/RepositoryFactory.js';
 
 const roomService = new RoomService();
 
 export class RoomController {
   static async getServices(req, res, next) {
     try {
-      const db = DatabaseConnection.getInstance();
-      const services = db.prepare(`
-        SELECT id, nombre, descripcion, duracion_minutos, arancel_bob
-        FROM servicios_aranceles
-        WHERE activo = 1
-        ORDER BY id ASC
-      `).all();
+      const roomRepo = RepositoryFactory.getRoomRepository();
+      const services = await roomRepo.getActiveServices();
 
       res.status(200).json({
         success: true,

@@ -1,7 +1,4 @@
 import { Router } from 'express';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
 import multer from 'multer';
 import { ClinicalRecordController } from '../controllers/clinicalRecordController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
@@ -9,31 +6,11 @@ import { requireRole } from '../middlewares/rbacMiddleware.js';
 import { validateBody, Validators } from '../middlewares/validationMiddleware.js';
 import { createSafeFileFilter, verifyUploadedFileMiddleware } from '../utils/fileValidator.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const UPLOADS_DIR = path.resolve(__dirname, '..', 'uploads', 'patient_documents');
-
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-}
-
 const ALLOWED_CLINICAL_DOC_MIMES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
 
-// Configuración segura de Multer (Almacenamiento en disco con nombres sanitizados / UUID)
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, UPLOADS_DIR);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const uniqueSuffix = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    cb(null, `doc_${uniqueSuffix}${ext}`);
-  }
-});
-
 const upload = multer({
-  storage,
-  limits: { fileSize: 15 * 1024 * 1024 }, // Máximo 15 MB por estudio / laboratorio
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // Máximo 10 MB por estudio / laboratorio
   fileFilter: createSafeFileFilter(
     ALLOWED_CLINICAL_DOC_MIMES,
     null,

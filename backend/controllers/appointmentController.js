@@ -1,6 +1,5 @@
 import { AppointmentService } from '../services/appointmentService.js';
 import { RepositoryFactory } from '../core/RepositoryFactory.js';
-import { DatabaseConnection } from '../core/DatabaseConnection.js';
 import { webPushService } from '../services/webPushService.js';
 import { notificationService } from '../services/notificationService.js';
 
@@ -180,7 +179,7 @@ export class AppointmentController {
 
   static async getReminders(req, res, next) {
     try {
-      const reminders = appointmentService.appointmentRepo.getRemindersByCitaId(req.params.id);
+      const reminders = await appointmentService.appointmentRepo.getRemindersByCitaId(req.params.id);
       res.status(200).json({
         success: true,
         data: reminders
@@ -202,18 +201,7 @@ export class AppointmentController {
 
       let tutorUsuarioId = cita.tutor_usuario_id;
       if (!tutorUsuarioId) {
-        const db = DatabaseConnection.getInstance();
-        const pt = db.prepare(`
-          SELECT tut.usuario_id 
-          FROM paciente_tutor pt
-          JOIN tutores tut ON pt.tutor_id = tut.id
-          WHERE pt.paciente_id = ?
-          ORDER BY pt.es_principal DESC
-          LIMIT 1
-        `).get(cita.paciente_id);
-        if (pt && pt.usuario_id) {
-          tutorUsuarioId = pt.usuario_id;
-        }
+        tutorUsuarioId = await repo.getPrimaryTutorUserIdByPatientId(cita.paciente_id);
       }
 
       const pacienteNom = cita.paciente_nombre_completo || 'su hijo/a';
@@ -250,7 +238,7 @@ export class AppointmentController {
         }
 
         try {
-          notificationService.createNotification({
+          await notificationService.createNotification({
             userId: tutorUsuarioId,
             tipo: 'RECORDATORIO',
             titulo: title,
@@ -269,7 +257,7 @@ export class AppointmentController {
           anticipacionMinutos: 0,
           mensajePersonalizado: body
         });
-        repo.updateReminderStatus(rem.id, 'ENVIADO', { enviadoAt: new Date().toISOString() });
+        await repo.updateReminderStatus(rem.id, 'ENVIADO', { enviadoAt: new Date().toISOString() });
       } catch (e) {}
 
       res.status(200).json({

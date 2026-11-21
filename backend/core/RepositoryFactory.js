@@ -1,4 +1,5 @@
 import { config } from '../config/environment.js';
+
 import { SqliteUserRepository } from '../repositories/sqlite/SqliteUserRepository.js';
 import { SqliteRoomRepository } from '../repositories/sqlite/SqliteRoomRepository.js';
 import { SqliteConfigRepository } from '../repositories/sqlite/SqliteConfigRepository.js';
@@ -17,207 +18,123 @@ import { SqliteGlossaryRepository } from '../repositories/sqlite/SqliteGlossaryR
 import { SqliteWorkshopRepository } from '../repositories/sqlite/SqliteWorkshopRepository.js';
 import { SqliteAnalyticsRepository } from '../repositories/sqlite/SqliteAnalyticsRepository.js';
 import { SqliteMaterialRepository } from '../repositories/sqlite/SqliteMaterialRepository.js';
+import { SqliteNotificationRepository } from '../repositories/sqlite/SqliteNotificationRepository.js';
+import { SqliteWhatsappRepository } from '../repositories/sqlite/SqliteWhatsappRepository.js';
+
+import { PostgresUserRepository } from '../repositories/postgres/PostgresUserRepository.js';
+import { PostgresRoomRepository } from '../repositories/postgres/PostgresRoomRepository.js';
+import { PostgresConfigRepository } from '../repositories/postgres/PostgresConfigRepository.js';
+import { PostgresPatientRepository } from '../repositories/postgres/PostgresPatientRepository.js';
+import { PostgresTherapistRepository } from '../repositories/postgres/PostgresTherapistRepository.js';
+import { PostgresTutorRepository } from '../repositories/postgres/PostgresTutorRepository.js';
+import { PostgresTriageRepository } from '../repositories/postgres/PostgresTriageRepository.js';
+import { PostgresClinicalRecordRepository } from '../repositories/postgres/PostgresClinicalRecordRepository.js';
+import { PostgresAppointmentRepository } from '../repositories/postgres/PostgresAppointmentRepository.js';
+import { PostgresConsentRepository } from '../repositories/postgres/PostgresConsentRepository.js';
+import { PostgresReportRepository } from '../repositories/postgres/PostgresReportRepository.js';
+import { PostgresPaymentRepository } from '../repositories/postgres/PostgresPaymentRepository.js';
+import { PostgresBatteryRepository } from '../repositories/postgres/PostgresBatteryRepository.js';
+import { PostgresConvenioRepository } from '../repositories/postgres/PostgresConvenioRepository.js';
+import { PostgresGlossaryRepository } from '../repositories/postgres/PostgresGlossaryRepository.js';
+import { PostgresWorkshopRepository } from '../repositories/postgres/PostgresWorkshopRepository.js';
+import { PostgresAnalyticsRepository } from '../repositories/postgres/PostgresAnalyticsRepository.js';
+import { PostgresMaterialRepository } from '../repositories/postgres/PostgresMaterialRepository.js';
+import { PostgresNotificationRepository } from '../repositories/postgres/PostgresNotificationRepository.js';
+import { PostgresWhatsappRepository } from '../repositories/postgres/PostgresWhatsappRepository.js';
 
 let instances = {};
 
+function resolveRepo(key, SqliteImpl, PostgresImpl) {
+  if (!instances[key]) {
+    if (config.database.driver === 'sqlite') {
+      instances[key] = new SqliteImpl();
+    } else if (config.database.driver === 'postgres' || config.database.driver === 'postgresql') {
+      instances[key] = new PostgresImpl();
+    } else {
+      throw new Error(`Driver [${config.database.driver}] no soportado en RepositoryFactory`);
+    }
+  }
+  return instances[key];
+}
+
 export class RepositoryFactory {
   static getUserRepository() {
-    if (!instances.userRepo) {
-      if (config.database.driver === 'sqlite') {
-        instances.userRepo = new SqliteUserRepository();
-      } else {
-        // Reservado para migración a Supabase (Fase 2)
-        throw new Error(`Driver [${config.database.driver}] no configurado aún en RepositoryFactory`);
-      }
-    }
-    return instances.userRepo;
+    return resolveRepo('userRepo', SqliteUserRepository, PostgresUserRepository);
   }
 
   static getRoomRepository() {
-    if (!instances.roomRepo) {
-      if (config.database.driver === 'sqlite') {
-        instances.roomRepo = new SqliteRoomRepository();
-      } else {
-        throw new Error(`Driver [${config.database.driver}] no configurado aún en RepositoryFactory`);
-      }
-    }
-    return instances.roomRepo;
+    return resolveRepo('roomRepo', SqliteRoomRepository, PostgresRoomRepository);
   }
 
   static getConfigRepository() {
-    if (!instances.configRepo) {
-      if (config.database.driver === 'sqlite') {
-        instances.configRepo = new SqliteConfigRepository();
-      } else {
-        throw new Error(`Driver [${config.database.driver}] no configurado aún en RepositoryFactory`);
-      }
-    }
-    return instances.configRepo;
+    return resolveRepo('configRepo', SqliteConfigRepository, PostgresConfigRepository);
   }
 
   static getPatientRepository() {
-    if (!instances.patientRepo) {
-      if (config.database.driver === 'sqlite') {
-        instances.patientRepo = new SqlitePatientRepository();
-      } else {
-        throw new Error(`Driver [${config.database.driver}] no configurado aún en RepositoryFactory`);
-      }
-    }
-    return instances.patientRepo;
+    return resolveRepo('patientRepo', SqlitePatientRepository, PostgresPatientRepository);
   }
 
   static getTherapistRepository() {
-    if (!instances.therapistRepo) {
-      if (config.database.driver === 'sqlite') {
-        instances.therapistRepo = new SqliteTherapistRepository();
-      } else {
-        throw new Error(`Driver [${config.database.driver}] no configurado aún en RepositoryFactory`);
-      }
-    }
-    return instances.therapistRepo;
+    return resolveRepo('therapistRepo', SqliteTherapistRepository, PostgresTherapistRepository);
   }
 
   static getTutorRepository() {
-    if (!instances.tutorRepo) {
-      if (config.database.driver === 'sqlite') {
-        instances.tutorRepo = new SqliteTutorRepository();
-      } else {
-        throw new Error(`Driver [${config.database.driver}] no configurado aún en RepositoryFactory`);
-      }
-    }
-    return instances.tutorRepo;
+    return resolveRepo('tutorRepo', SqliteTutorRepository, PostgresTutorRepository);
   }
 
   static getTriageRepository() {
-    if (!instances.triageRepo) {
-      if (config.database.driver === 'sqlite') {
-        instances.triageRepo = new SqliteTriageRepository();
-      } else {
-        throw new Error(`Driver [${config.database.driver}] no configurado aún en RepositoryFactory`);
-      }
-    }
-    return instances.triageRepo;
+    return resolveRepo('triageRepo', SqliteTriageRepository, PostgresTriageRepository);
   }
 
   static getClinicalRecordRepository() {
-    if (!instances.clinicalRecordRepo) {
-      if (config.database.driver === 'sqlite') {
-        instances.clinicalRecordRepo = new SqliteClinicalRecordRepository();
-      } else {
-        throw new Error(`Driver [${config.database.driver}] no configurado aún en RepositoryFactory`);
-      }
-    }
-    return instances.clinicalRecordRepo;
+    return resolveRepo('clinicalRecordRepo', SqliteClinicalRecordRepository, PostgresClinicalRecordRepository);
   }
 
   static getAppointmentRepository() {
-    if (!instances.appointmentRepo) {
-      if (config.database.driver === 'sqlite') {
-        instances.appointmentRepo = new SqliteAppointmentRepository();
-      } else {
-        throw new Error(`Driver [${config.database.driver}] no configurado aún en RepositoryFactory`);
-      }
-    }
-    return instances.appointmentRepo;
+    return resolveRepo('appointmentRepo', SqliteAppointmentRepository, PostgresAppointmentRepository);
   }
 
   static getConsentRepository() {
-    if (!instances.consentRepo) {
-      if (config.database.driver === 'sqlite') {
-        instances.consentRepo = new SqliteConsentRepository();
-      } else {
-        throw new Error(`Driver [${config.database.driver}] no configurado aún en RepositoryFactory`);
-      }
-    }
-    return instances.consentRepo;
+    return resolveRepo('consentRepo', SqliteConsentRepository, PostgresConsentRepository);
   }
 
   static getReportRepository() {
-    if (!instances.reportRepo) {
-      if (config.database.driver === 'sqlite') {
-        instances.reportRepo = new SqliteReportRepository();
-      } else {
-        throw new Error(`Driver [${config.database.driver}] no configurado aún en RepositoryFactory`);
-      }
-    }
-    return instances.reportRepo;
+    return resolveRepo('reportRepo', SqliteReportRepository, PostgresReportRepository);
   }
 
   static getPaymentRepository() {
-    if (!instances.paymentRepo) {
-      if (config.database.driver === 'sqlite') {
-        instances.paymentRepo = new SqlitePaymentRepository();
-      } else {
-        throw new Error(`Driver [${config.database.driver}] no configurado aún en RepositoryFactory`);
-      }
-    }
-    return instances.paymentRepo;
+    return resolveRepo('paymentRepo', SqlitePaymentRepository, PostgresPaymentRepository);
   }
 
   static getBatteryRepository() {
-    if (!instances.batteryRepo) {
-      if (config.database.driver === 'sqlite') {
-        instances.batteryRepo = new SqliteBatteryRepository();
-      } else {
-        throw new Error(`Driver [${config.database.driver}] no configurado aún en RepositoryFactory`);
-      }
-    }
-    return instances.batteryRepo;
+    return resolveRepo('batteryRepo', SqliteBatteryRepository, PostgresBatteryRepository);
   }
 
   static getConvenioRepository() {
-    if (!instances.convenioRepo) {
-      if (config.database.driver === 'sqlite') {
-        instances.convenioRepo = new SqliteConvenioRepository();
-      } else {
-        throw new Error(`Driver [${config.database.driver}] no configurado aún en RepositoryFactory`);
-      }
-    }
-    return instances.convenioRepo;
+    return resolveRepo('convenioRepo', SqliteConvenioRepository, PostgresConvenioRepository);
   }
 
   static getGlossaryRepository() {
-    if (!instances.glossaryRepo) {
-      if (config.database.driver === 'sqlite') {
-        instances.glossaryRepo = new SqliteGlossaryRepository();
-      } else {
-        throw new Error(`Driver [${config.database.driver}] no configurado aún en RepositoryFactory`);
-      }
-    }
-    return instances.glossaryRepo;
+    return resolveRepo('glossaryRepo', SqliteGlossaryRepository, PostgresGlossaryRepository);
   }
 
   static getWorkshopRepository() {
-    if (!instances.workshopRepo) {
-      if (config.database.driver === 'sqlite') {
-        instances.workshopRepo = new SqliteWorkshopRepository();
-      } else {
-        throw new Error(`Driver [${config.database.driver}] no configurado aún en RepositoryFactory`);
-      }
-    }
-    return instances.workshopRepo;
+    return resolveRepo('workshopRepo', SqliteWorkshopRepository, PostgresWorkshopRepository);
   }
 
   static getAnalyticsRepository() {
-    if (!instances.analyticsRepo) {
-      if (config.database.driver === 'sqlite') {
-        instances.analyticsRepo = new SqliteAnalyticsRepository();
-      } else {
-        throw new Error(`Driver [${config.database.driver}] no configurado aún en RepositoryFactory`);
-      }
-    }
-    return instances.analyticsRepo;
+    return resolveRepo('analyticsRepo', SqliteAnalyticsRepository, PostgresAnalyticsRepository);
   }
 
   static getMaterialRepository() {
-    if (!instances.materialRepo) {
-      if (config.database.driver === 'sqlite') {
-        instances.materialRepo = new SqliteMaterialRepository();
-      } else {
-        throw new Error(`Driver [${config.database.driver}] no configurado aún en RepositoryFactory`);
-      }
-    }
-    return instances.materialRepo;
+    return resolveRepo('materialRepo', SqliteMaterialRepository, PostgresMaterialRepository);
+  }
+
+  static getNotificationRepository() {
+    return resolveRepo('notificationRepo', SqliteNotificationRepository, PostgresNotificationRepository);
+  }
+
+  static getWhatsappRepository() {
+    return resolveRepo('whatsappRepo', SqliteWhatsappRepository, PostgresWhatsappRepository);
   }
 }
-

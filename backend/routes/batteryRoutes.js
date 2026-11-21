@@ -1,38 +1,17 @@
 import { Router } from 'express';
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
 import { BatteryController } from '../controllers/batteryController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { requireRole } from '../middlewares/rbacMiddleware.js';
 import { validateBody, Validators } from '../middlewares/validationMiddleware.js';
 import { createSafeFileFilter, verifyUploadedFileMiddleware } from '../utils/fileValidator.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const BATTERIES_UPLOAD_DIR = path.resolve(__dirname, '../uploads/batteries');
-if (!fs.existsSync(BATTERIES_UPLOAD_DIR)) {
-  fs.mkdirSync(BATTERIES_UPLOAD_DIR, { recursive: true });
-}
+import { storageService } from '../services/storageService.js';
 
 const ALLOWED_BATTERY_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml', 'application/pdf'];
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, BATTERIES_UPLOAD_DIR);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const uniqueSuffix = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    cb(null, `battery_${uniqueSuffix}${ext}`);
-  }
-});
-
 const upload = multer({
-  storage,
-  limits: { fileSize: 15 * 1024 * 1024 },
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 4 * 1024 * 1024 }, // 4 MB
   fileFilter: createSafeFileFilter(
     ALLOWED_BATTERY_MIMES,
     null,
@@ -94,17 +73,22 @@ router.post('/', requireRole(['ADMIN', 'RECEPCION']), validateBody(validateBatte
 router.put('/:id', requireRole(['ADMIN', 'RECEPCION']), validateBody(validateBatteryDto({ isCreate: false })), BatteryController.updateBattery);
 
 // Subida de imagen o documento de referencia
-router.post('/upload-image', requireRole(['ADMIN', 'RECEPCION']), upload.single('file'), verifyUploadedFileMiddleware(ALLOWED_BATTERY_MIMES), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ success: false, message: 'No se subió ningún archivo' });
+router.post('/upload-image', requireRole(['ADMIN', 'RECEPCION']), upload.single('file'), verifyUploadedFileMiddleware(ALLOWED_BATTERY_MIMES), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No se subió ningún archivo' });
+    }
+    const objectPath = `batteries/${storageService.buildSafeFilename('battery', req.file.originalname)}`;
+    const uploaded = await storageService.uploadPublic(objectPath, req.file.buffer, req.file.mimetype);
+    res.status(200).json({
+      success: true,
+      message: 'Archivo de referencia subido con éxito.',
+      url: uploaded.publicUrl,
+      filename: uploaded.path
+    });
+  } catch (err) {
+    next(err);
   }
-  const publicUrl = `/uploads/batteries/${req.file.filename}`;
-  res.status(200).json({
-    success: true,
-    message: 'Archivo de referencia subido con éxito.',
-    url: publicUrl,
-    filename: req.file.filename
-  });
 });
 
 // Préstamo y devolución de pruebas clínicas

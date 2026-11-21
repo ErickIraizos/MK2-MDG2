@@ -363,12 +363,8 @@ export class AuthService {
           });
 
           // Actualizar teléfono en tabla whatsapp_sesiones
-          const db = DatabaseConnection.getInstance();
-          db.prepare(`
-            UPDATE whatsapp_sesiones 
-            SET telefono_vinculado = COALESCE(?, telefono_vinculado), updated_at = CURRENT_TIMESTAMP 
-            WHERE terapeuta_id = ?
-          `).run(cleanPhone, therapist.id);
+          const waRepo = RepositoryFactory.getWhatsappRepository();
+          await waRepo.syncLinkedPhone(therapist.id, cleanPhone);
         }
       } catch (thErr) {
         console.warn('[AuthService] Nota al sincronizar teléfono en terapeuta:', thErr.message);

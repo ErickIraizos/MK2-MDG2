@@ -1,4 +1,5 @@
 import { ClinicalRecordService } from '../services/clinicalRecordService.js';
+import { storageService, PRIVATE_BUCKET } from '../services/storageService.js';
 
 const service = new ClinicalRecordService();
 
@@ -209,15 +210,24 @@ export class ClinicalRecordController {
     try {
       const { docId } = req.params;
       const { download } = req.query;
-      const { document, filePath } = await service.getDocumentForView(Number(docId), req.user);
+      const downloadFlag = download === '1';
+      const { document, objectKey } = await service.getDocumentForView(Number(docId), req.user);
 
-      if (download === '1') {
-        res.download(filePath, document.nombre_original);
-      } else {
-        res.setHeader('Content-Type', document.tipo_mime);
-        res.setHeader('Content-Disposition', `inline; filename="${document.nombre_original}"`);
-        res.sendFile(filePath);
+      if (req.headers.authorization) {
+        const buffer = await storageService.downloadBuffer(PRIVATE_BUCKET, objectKey);
+        const disposition = downloadFlag ? 'attachment' : 'inline';
+        res.setHeader('Content-Type', document.tipo_mime || 'application/octet-stream');
+        res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(document.nombre_original || 'documento.pdf')}"`);
+        return res.send(buffer);
       }
+
+      const signedUrl = await storageService.createSignedUrl(
+        PRIVATE_BUCKET,
+        objectKey,
+        60,
+        downloadFlag ? { download: document.nombre_original || true } : {}
+      );
+      return res.redirect(302, signedUrl);
     } catch (err) {
       next(err);
     }

@@ -1,38 +1,16 @@
 import { Router } from 'express';
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
 import { ConvenioController } from '../controllers/convenioController.js';
 import { authMiddleware, optionalAuthMiddleware } from '../middlewares/authMiddleware.js';
 import { requireRole } from '../middlewares/rbacMiddleware.js';
 import { validateBody, Validators } from '../middlewares/validationMiddleware.js';
 import { createSafeFileFilter, verifyUploadedFileMiddleware } from '../utils/fileValidator.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const CONVENIOS_UPLOAD_DIR = path.resolve(__dirname, '../uploads/convenios');
-
-if (!fs.existsSync(CONVENIOS_UPLOAD_DIR)) {
-  fs.mkdirSync(CONVENIOS_UPLOAD_DIR, { recursive: true });
-}
-
 const ALLOWED_CONVENIO_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, CONVENIOS_UPLOAD_DIR);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const uniqueSuffix = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-    cb(null, `convenio_${uniqueSuffix}${ext}`);
-  }
-});
-
 const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 4 * 1024 * 1024 }, // 4 MB
   fileFilter: createSafeFileFilter(
     ALLOWED_CONVENIO_MIMES,
     null,

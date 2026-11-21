@@ -424,7 +424,7 @@ export class AppointmentService {
     // Si se cancela la cita, cancelar de inmediato cualquier recordatorio pendiente
     if (estado === 'CANCELADA') {
       try {
-        this.appointmentRepo.cancelPendingRemindersByCitaId(id);
+        await this.appointmentRepo.cancelPendingRemindersByCitaId(id);
       } catch (e) {}
     }
 
@@ -441,7 +441,7 @@ export class AppointmentService {
 
         const terapeuta = await this.therapistRepo.findById(updated.terapeuta_id);
         if (terapeuta && terapeuta.usuario_id) {
-          notificationService.createNotification({
+          await notificationService.createNotification({
             userId: terapeuta.usuario_id,
             tipo: isConfirm ? 'CITA_CONFIRMADA' : 'CITA_REPROGRAMADA',
             titulo: title,

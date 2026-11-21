@@ -1,17 +1,8 @@
 import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
 import { PaymentService } from '../services/paymentService.js';
 import { AppError } from '../core/AppError.js';
-import { validateBase64Image } from '../utils/fileValidator.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const RECEIPTS_DIR = path.resolve(__dirname, '../uploads/receipts');
-const QR_DIR = path.resolve(__dirname, '../uploads/qr');
-
-if (!fs.existsSync(RECEIPTS_DIR)) fs.mkdirSync(RECEIPTS_DIR, { recursive: true });
-if (!fs.existsSync(QR_DIR)) fs.mkdirSync(QR_DIR, { recursive: true });
+import { parseBase64Image } from '../utils/fileValidator.js';
+import { storageService, PRIVATE_BUCKET, extractStorageKey } from '../services/storageService.js';
 
 const paymentService = new PaymentService();
 
@@ -61,11 +52,17 @@ export class PaymentController {
       let fileType = null;
 
       if (req.file) {
-        fileUrl = `/uploads/receipts/${req.file.filename}`;
+        const objectPath = `receipts/${storageService.buildSafeFilename('comprobante', req.file.originalname)}`;
+        await storageService.uploadPrivate(objectPath, req.file.buffer, req.file.mimetype);
+        fileUrl = objectPath;
         fileType = req.file.mimetype;
       } else if (req.body.comprobante_base64) {
-        fileType = validateBase64Image(req.body.comprobante_base64, 10 * 1024 * 1024);
-        fileUrl = req.body.comprobante_base64;
+        const { mimetype, buffer } = parseBase64Image(req.body.comprobante_base64, 4 * 1024 * 1024);
+        const ext = mimetype.split('/')[1] === 'jpeg' ? 'jpg' : mimetype.split('/')[1];
+        const objectPath = `receipts/${storageService.buildSafeFilename('comprobante', `receipt.${ext}`)}`;
+        await storageService.uploadPrivate(objectPath, buffer, mimetype);
+        fileUrl = objectPath;
+        fileType = mimetype;
       } else {
         throw AppError.badRequest('Debe adjuntar una imagen o documento de comprobante de pago.');
       }
@@ -182,7 +179,9 @@ export class PaymentController {
         throw AppError.badRequest('No se adjuntó ningún archivo de imagen para el QR oficial.');
       }
 
-      const qrImageUrl = `/uploads/qr/${req.file.filename}`;
+      const objectPath = `qr/${storageService.buildSafeFilename('qr_institucional', req.file.originalname)}`;
+      const uploaded = await storageService.uploadPublic(objectPath, req.file.buffer, req.file.mimetype);
+      const qrImageUrl = uploaded.publicUrl;
       const configData = {
         qr_imagen: qrImageUrl,
         banco_nombre: req.body.banco_nombre,
@@ -212,7 +211,7 @@ export class PaymentController {
         throw AppError.notFound('El pago no cuenta con un archivo de comprobante adjunto.');
       }
 
-      // Si es un data URI base64
+      // Si es un data URI base64 legacy
       if (payment.comprobante_url.startsWith('data:')) {
         const matches = payment.comprobante_url.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
         if (matches && matches.length === 3) {
@@ -223,15 +222,22 @@ export class PaymentController {
         }
       }
 
-      // Si es un archivo en disco, validar estrictamente que resida dentro de RECEIPTS_DIR (anti-path traversal)
-      const relPath = String(payment.comprobante_url).replace(/^\/+/, '');
-      const filePath = path.resolve(__dirname, '..', relPath);
-      const isInsideUploads = filePath.startsWith(RECEIPTS_DIR + path.sep) || filePath.startsWith(path.resolve(__dirname, '../uploads') + path.sep);
-      if (!isInsideUploads || !fs.existsSync(filePath)) {
-        throw AppError.notFound('El archivo físico del comprobante no existe en el servidor.');
+      const objectKey = extractStorageKey(payment.comprobante_url, 'receipts', PRIVATE_BUCKET);
+      if (!objectKey) {
+        throw AppError.notFound('El archivo físico del comprobante no existe en el almacenamiento.');
       }
 
-      res.sendFile(filePath);
+      if (req.headers.authorization) {
+        const buffer = await storageService.downloadBuffer(PRIVATE_BUCKET, objectKey);
+        const ext = path.extname(objectKey).toLowerCase();
+        const fallbackMime = ext === '.pdf' ? 'application/pdf' : (ext === '.png' ? 'image/png' : (ext === '.webp' ? 'image/webp' : 'image/jpeg'));
+        res.setHeader('Content-Type', payment.comprobante_tipo || fallbackMime);
+        res.setHeader('Content-Disposition', 'inline');
+        return res.send(buffer);
+      }
+
+      const signedUrl = await storageService.createSignedUrl(PRIVATE_BUCKET, objectKey, 60);
+      return res.redirect(302, signedUrl);
     } catch (error) {
       next(error);
     }
@@ -284,7 +290,9 @@ export class PaymentController {
       if (!req.file) {
         throw AppError.badRequest('Debe adjuntar una imagen válida para su código QR personal.');
       }
-      const qrUrl = `/uploads/qr/${req.file.filename}`;
+      const objectPath = `qr/${storageService.buildSafeFilename(`qr_terapeuta_${req.user.id}`, req.file.originalname)}`;
+      const uploaded = await storageService.uploadPublic(objectPath, req.file.buffer, req.file.mimetype);
+      const qrUrl = uploaded.publicUrl;
       const qr_fecha_vencimiento = req.body?.qr_fecha_vencimiento || null;
       const config = await paymentService.uploadTherapistQr(req.user, qrUrl, qr_fecha_vencimiento);
       res.status(200).json({

@@ -2906,7 +2906,7 @@ La presente acta legal acredita el pleno conocimiento y consentimiento informado
                   Haz clic para seleccionar el archivo firmado
                 </div>
                 <div style="font-size: 0.76rem; color: var(--soft-text-muted);">
-                  Formatos permitidos: PDF, Word o imágenes PNG y JPG · Máximo 15 MB
+                  Formatos permitidos: PDF, Word o imágenes PNG y JPG · Máximo 10 MB
                 </div>
               </div>
 

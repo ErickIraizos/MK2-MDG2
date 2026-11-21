@@ -1,4 +1,5 @@
 import { materialService } from '../services/materialService.js';
+import { storageService, PUBLIC_BUCKET, PRIVATE_BUCKET, extractStorageKey } from '../services/storageService.js';
 
 export class MaterialController {
   static async getFolders(req, res, next) {
@@ -122,6 +123,44 @@ export class MaterialController {
         success: true,
         message: 'Archivo eliminado del repositorio.'
       });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async viewFile(req, res, next) {
+    try {
+      const { id } = req.params;
+      const downloadFlag = req.query.download === '1';
+      const file = await materialService.getFileForView(Number(id), req.user);
+      const isPrivate = Number(file.es_publico) === 0;
+      const bucket = isPrivate ? PRIVATE_BUCKET : PUBLIC_BUCKET;
+      const key = extractStorageKey(file.nombre_almacenado, 'materiales', bucket);
+
+      if (req.headers.authorization) {
+        const buffer = await storageService.downloadBuffer(bucket, key);
+        const disposition = downloadFlag ? 'attachment' : 'inline';
+        res.setHeader('Content-Type', file.tipo_mime || 'application/octet-stream');
+        res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(file.nombre_original || 'material')}"`);
+        return res.send(buffer);
+      }
+
+      if (isPrivate) {
+        const signedUrl = await storageService.createSignedUrl(
+          PRIVATE_BUCKET,
+          key,
+          60,
+          downloadFlag ? { download: file.nombre_original || true } : {}
+        );
+        return res.redirect(302, signedUrl);
+      }
+
+      if (String(file.nombre_almacenado).startsWith('http') && !downloadFlag) {
+        return res.redirect(302, file.nombre_almacenado);
+      }
+
+      const publicUrl = storageService.getPublicUrl(key, PUBLIC_BUCKET);
+      return res.redirect(302, downloadFlag ? `${publicUrl}?download=${encodeURIComponent(file.nombre_original || '')}` : publicUrl);
     } catch (err) {
       next(err);
     }

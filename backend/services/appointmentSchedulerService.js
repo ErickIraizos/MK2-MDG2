@@ -1,11 +1,11 @@
-import { DatabaseConnection } from '../core/DatabaseConnection.js';
+import { RepositoryFactory } from '../core/RepositoryFactory.js';
+import { getBoliviaNowSqlString } from '../utils/dateTime.js';
 import { whatsappManager } from './whatsappManager.js';
 import { webPushService } from './webPushService.js';
 import { notificationService } from './notificationService.js';
 
 class AppointmentSchedulerService {
   constructor() {
-    this.db = null;
     this.intervalId = null;
     this.isRunning = false;
     this.checkIntervalMs = 20 * 1000; // Sincronización reactiva cada 20 segundos
@@ -13,11 +13,8 @@ class AppointmentSchedulerService {
     this.lastStats = { processed24h: 0, processed2h: 0, errors: [] };
   }
 
-  getDb() {
-    if (!this.db) {
-      this.db = DatabaseConnection.getInstance();
-    }
-    return this.db;
+  _apptRepo() {
+    return RepositoryFactory.getAppointmentRepository();
   }
 
   start() {
@@ -75,49 +72,27 @@ class AppointmentSchedulerService {
 
   async runCycle() {
     this.lastRunAt = new Date().toISOString();
-    const db = this.getDb();
+    const repo = this._apptRepo();
     const stats = { processed24h: 0, processed2h: 0, errors: [] };
 
     try {
-      // Obtenemos fecha y hora actual en formato ISO string comparable (YYYY-MM-DD HH:mm:ss)
       const now = new Date();
-      
-      // Ventana 24 Horas: Citas entre 20h y 28h hacia adelante
-      const win24hStart = new Date(now.getTime() + 20 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 19);
-      const win24hEnd = new Date(now.getTime() + 28 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 19);
 
-      // Ventana 2 Horas: Citas entre 1h y 3h hacia adelante
-      const win2hStart = new Date(now.getTime() + 1 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 19);
-      const win2hEnd = new Date(now.getTime() + 3 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 19);
+      // Ventana 24 Horas: Citas entre 20h y 28h hacia adelante en hora oficial de Bolivia
+      const win24hStart = getBoliviaNowSqlString(new Date(now.getTime() + 20 * 60 * 60 * 1000));
+      const win24hEnd = getBoliviaNowSqlString(new Date(now.getTime() + 28 * 60 * 60 * 1000));
+
+      // Ventana 2 Horas: Citas entre 1h y 3h hacia adelante en hora oficial de Bolivia
+      const win2hStart = getBoliviaNowSqlString(new Date(now.getTime() + 1 * 60 * 60 * 1000));
+      const win2hEnd = getBoliviaNowSqlString(new Date(now.getTime() + 3 * 60 * 60 * 1000));
 
       // 1. EVALUAR CITAS PARA RECORDATORIO 24 HORAS
-      const citas24h = db.prepare(`
-        SELECT 
-          c.id, c.paciente_id, c.terapeuta_id, c.ambiente_id, c.fecha_hora_inicio, c.fecha_hora_fin, c.estado,
-          p.nombres AS paciente_nombres, p.apellidos AS paciente_apellidos, p.codigo_expediente,
-          t.nombres AS terapeuta_nombres, t.apellidos AS terapeuta_apellidos, t.usuario_id AS terapeuta_usuario_id,
-          a.codigo AS ambiente_codigo, a.nombre AS ambiente_nombre,
-          tut.nombres AS tutor_nombres, tut.apellidos AS tutor_apellidos, tut.whatsapp AS tutor_telefono, tut.usuario_id AS tutor_usuario_id
-        FROM citas c
-        JOIN pacientes p ON c.paciente_id = p.id
-        JOIN terapeutas t ON c.terapeuta_id = t.id
-        JOIN ambientes a ON c.ambiente_id = a.id
-        LEFT JOIN paciente_tutor pt ON p.id = pt.paciente_id AND pt.es_principal = 1
-        LEFT JOIN tutores tut ON pt.tutor_id = tut.id
-        WHERE c.estado IN ('PROGRAMADA', 'CONFIRMADA')
-          AND c.recordatorio_24h_enviado = 0
-          AND c.fecha_hora_inicio BETWEEN ? AND ?
-        ORDER BY c.fecha_hora_inicio ASC
-      `).all(win24hStart, win24hEnd);
+      const citas24h = await repo.getUpcomingAppointmentsForReminderWindow('recordatorio_24h_enviado', win24hStart, win24hEnd);
 
       for (const cita of citas24h) {
         try {
           await this.dispatchReminder(cita, '24H');
-          db.prepare(`
-            UPDATE citas 
-            SET recordatorio_24h_enviado = 1, recordatorio_24h_at = CURRENT_TIMESTAMP 
-            WHERE id = ?
-          `).run(cita.id);
+          await repo.markWindowReminderSent(cita.id, '24H');
           stats.processed24h++;
         } catch (err) {
           console.error(`[Scheduler] Error despachando 24h para cita ID ${cita.id}:`, err.message);
@@ -126,33 +101,12 @@ class AppointmentSchedulerService {
       }
 
       // 2. EVALUAR CITAS PARA RECORDATORIO 2 HORAS
-      const citas2h = db.prepare(`
-        SELECT 
-          c.id, c.paciente_id, c.terapeuta_id, c.ambiente_id, c.fecha_hora_inicio, c.fecha_hora_fin, c.estado,
-          p.nombres AS paciente_nombres, p.apellidos AS paciente_apellidos, p.codigo_expediente,
-          t.nombres AS terapeuta_nombres, t.apellidos AS terapeuta_apellidos, t.usuario_id AS terapeuta_usuario_id,
-          a.codigo AS ambiente_codigo, a.nombre AS ambiente_nombre,
-          tut.nombres AS tutor_nombres, tut.apellidos AS tutor_apellidos, tut.whatsapp AS tutor_telefono, tut.usuario_id AS tutor_usuario_id
-        FROM citas c
-        JOIN pacientes p ON c.paciente_id = p.id
-        JOIN terapeutas t ON c.terapeuta_id = t.id
-        JOIN ambientes a ON c.ambiente_id = a.id
-        LEFT JOIN paciente_tutor pt ON p.id = pt.paciente_id AND pt.es_principal = 1
-        LEFT JOIN tutores tut ON pt.tutor_id = tut.id
-        WHERE c.estado IN ('PROGRAMADA', 'CONFIRMADA')
-          AND c.recordatorio_2h_enviado = 0
-          AND c.fecha_hora_inicio BETWEEN ? AND ?
-        ORDER BY c.fecha_hora_inicio ASC
-      `).all(win2hStart, win2hEnd);
+      const citas2h = await repo.getUpcomingAppointmentsForReminderWindow('recordatorio_2h_enviado', win2hStart, win2hEnd);
 
       for (const cita of citas2h) {
         try {
           await this.dispatchReminder(cita, '2H');
-          db.prepare(`
-            UPDATE citas 
-            SET recordatorio_2h_enviado = 1, recordatorio_2h_at = CURRENT_TIMESTAMP 
-            WHERE id = ?
-          `).run(cita.id);
+          await repo.markWindowReminderSent(cita.id, '2H');
           stats.processed2h++;
         } catch (err) {
           console.error(`[Scheduler] Error despachando 2h para cita ID ${cita.id}:`, err.message);
@@ -161,45 +115,18 @@ class AppointmentSchedulerService {
       }
 
       // 3. EVALUAR RECORDATORIOS PROGRAMADOS INDEPENDIENTES (recordatorios_citas)
-      const nowSchedule = new Date().toISOString().replace('T', ' ').slice(0, 19);
-      const customReminders = db.prepare(`
-        SELECT 
-          r.*,
-          c.fecha_hora_inicio, c.fecha_hora_fin, c.estado AS cita_estado,
-          p.nombres AS paciente_nombres, p.apellidos AS paciente_apellidos, p.codigo_expediente,
-          t.id AS terapeuta_id, t.nombres AS terapeuta_nombres, t.apellidos AS terapeuta_apellidos, t.usuario_id AS terapeuta_usuario_id,
-          a.codigo AS ambiente_codigo, a.nombre AS ambiente_nombre,
-          tut.id AS tutor_id, tut.nombres AS tutor_nombres, tut.apellidos AS tutor_apellidos, tut.whatsapp AS tutor_telefono, tut.usuario_id AS tutor_usuario_id
-        FROM recordatorios_citas r
-        JOIN citas c ON r.cita_id = c.id
-        JOIN pacientes p ON c.paciente_id = p.id
-        JOIN terapeutas t ON c.terapeuta_id = t.id
-        JOIN ambientes a ON c.ambiente_id = a.id
-        LEFT JOIN paciente_tutor pt ON p.id = pt.paciente_id AND pt.es_principal = 1
-        LEFT JOIN tutores tut ON pt.tutor_id = tut.id
-        WHERE r.estado = 'PENDIENTE'
-          AND c.estado IN ('PROGRAMADA', 'CONFIRMADA')
-          AND r.fecha_programada_envio <= ?
-        ORDER BY r.fecha_programada_envio ASC
-      `).all(nowSchedule);
+      const nowSchedule = getBoliviaNowSqlString(now);
+      const customReminders = await repo.getPendingRemindersDue(nowSchedule);
 
       stats.processedCustom = 0;
       for (const rem of customReminders) {
         try {
           await this.dispatchCustomReminder(rem);
-          db.prepare(`
-            UPDATE recordatorios_citas
-            SET estado = 'ENVIADO', enviado_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-          `).run(rem.id);
+          await repo.updateReminderStatus(rem.id, 'ENVIADO', { enviadoAt: nowSchedule });
           stats.processedCustom++;
         } catch (remErr) {
           console.error(`[Scheduler] Error despachando recordatorio programado ID ${rem.id}:`, remErr.message);
-          db.prepare(`
-            UPDATE recordatorios_citas
-            SET estado = 'FALLIDO', error_mensaje = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-          `).run(remErr.message, rem.id);
+          await repo.updateReminderStatus(rem.id, 'FALLIDO', { errorMensaje: remErr.message });
           stats.errors.push({ reminderId: rem.id, type: 'CUSTOM', error: remErr.message });
         }
       }
@@ -293,7 +220,7 @@ _Centro Psicopedagógico PSI Aprende_`;
       }
 
       // C. REGISTRO EN CENTRO DE NOTIFICACIONES IN-APP (Para el Tutor)
-      notificationService.createNotification({
+      await notificationService.createNotification({
         userId: cita.tutor_usuario_id,
         tipo: windowType === '24H' ? 'RECORDATORIO_24H' : 'RECORDATORIO_2H',
         titulo: notificationTitle,
@@ -320,7 +247,7 @@ _Centro Psicopedagógico PSI Aprende_`;
         });
       } catch (e) {}
 
-      notificationService.createNotification({
+      await notificationService.createNotification({
         userId: cita.terapeuta_usuario_id,
         tipo: 'RECORDATORIO',
         titulo: therapistTitle,
@@ -396,7 +323,7 @@ _Cochabamba - Bolivia_`;
         });
       } catch (pushErr) {}
 
-      notificationService.createNotification({
+      await notificationService.createNotification({
         userId: rem.tutor_usuario_id,
         tipo: 'RECORDATORIO',
         titulo: title,
@@ -410,7 +337,7 @@ _Cochabamba - Bolivia_`;
     if (rem.terapeuta_usuario_id) {
       const thTitle = `Recordatorio despachado: ${pacienteNombre}`;
       const thBody = `Se envió recordatorio a ${tutorNombre} (${rem.anticipacion_minutos} min antes). Horario: ${hora}.`;
-      notificationService.createNotification({
+      await notificationService.createNotification({
         userId: rem.terapeuta_usuario_id,
         tipo: 'RECORDATORIO',
         titulo: thTitle,

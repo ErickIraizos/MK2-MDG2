@@ -1,4 +1,5 @@
 import { ConvenioService } from '../services/convenioService.js';
+import { storageService } from '../services/storageService.js';
 
 const convenioService = new ConvenioService();
 
@@ -129,13 +130,15 @@ export class ConvenioController {
         });
       }
 
-      const fileUrl = `/uploads/convenios/${req.file.filename}`;
+      const objectPath = `convenios/${storageService.buildSafeFilename('convenio', req.file.originalname)}`;
+      const uploaded = await storageService.uploadPublic(objectPath, req.file.buffer, req.file.mimetype);
+
       res.status(200).json({
         success: true,
         message: 'Imagen subida exitosamente.',
         data: {
-          url: fileUrl,
-          filename: req.file.filename,
+          url: uploaded.publicUrl,
+          filename: uploaded.path,
           size: req.file.size
         }
       });

@@ -1,38 +1,16 @@
 import { Router } from 'express';
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
 import { TherapistController } from '../controllers/therapistController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { requireRole } from '../middlewares/rbacMiddleware.js';
 import { validateBody, Validators } from '../middlewares/validationMiddleware.js';
 import { createSafeFileFilter, verifyUploadedFileMiddleware } from '../utils/fileValidator.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const THERAPISTS_UPLOAD_DIR = path.resolve(__dirname, '../uploads/therapists');
-
-if (!fs.existsSync(THERAPISTS_UPLOAD_DIR)) {
-  fs.mkdirSync(THERAPISTS_UPLOAD_DIR, { recursive: true });
-}
-
 const ALLOWED_PHOTO_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
 
-const photoStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, THERAPISTS_UPLOAD_DIR);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const uniqueSuffix = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-    cb(null, `therapist_${uniqueSuffix}${ext}`);
-  }
-});
-
 const photoUpload = multer({
-  storage: photoStorage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 4 * 1024 * 1024 }, // 4 MB
   fileFilter: createSafeFileFilter(
     ALLOWED_PHOTO_MIMES,
     null,

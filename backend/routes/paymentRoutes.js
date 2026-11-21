@@ -1,36 +1,19 @@
 import { Router } from 'express';
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
 import { PaymentController } from '../controllers/paymentController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { requireRole } from '../middlewares/rbacMiddleware.js';
 import { validateBody, Validators } from '../middlewares/validationMiddleware.js';
 import { createSafeFileFilter, verifyUploadedFileMiddleware } from '../utils/fileValidator.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const RECEIPTS_DIR = path.resolve(__dirname, '../uploads/receipts');
-const QR_DIR = path.resolve(__dirname, '../uploads/qr');
-
-if (!fs.existsSync(RECEIPTS_DIR)) fs.mkdirSync(RECEIPTS_DIR, { recursive: true });
-if (!fs.existsSync(QR_DIR)) fs.mkdirSync(QR_DIR, { recursive: true });
-
 const ALLOWED_RECEIPT_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 const ALLOWED_QR_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
 
-const receiptStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, RECEIPTS_DIR),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `comprobante_${Date.now()}_${Math.round(Math.random() * 1e6)}${ext}`);
-  }
-});
+const memoryStorage = multer.memoryStorage();
+
 const uploadReceipt = multer({
-  storage: receiptStorage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  storage: memoryStorage,
+  limits: { fileSize: 4 * 1024 * 1024 }, // 4 MB
   fileFilter: createSafeFileFilter(
     ALLOWED_RECEIPT_MIMES,
     null,
@@ -38,16 +21,9 @@ const uploadReceipt = multer({
   )
 });
 
-const qrStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, QR_DIR),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `qr_institucional_${Date.now()}${ext}`);
-  }
-});
 const uploadQr = multer({
-  storage: qrStorage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  storage: memoryStorage,
+  limits: { fileSize: 4 * 1024 * 1024 }, // 4 MB
   fileFilter: createSafeFileFilter(
     ALLOWED_QR_MIMES,
     null,

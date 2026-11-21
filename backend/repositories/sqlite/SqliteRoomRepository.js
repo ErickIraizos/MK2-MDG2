@@ -113,4 +113,13 @@ export class SqliteRoomRepository extends IRoomRepository {
       estado_actual: room.activo === 1 ? 'DISPONIBLE' : 'EN_MANTENIMIENTO'
     }));
   }
+
+  async getActiveServices() {
+    return this.db.prepare(`
+      SELECT id, nombre, descripcion, duracion_minutos, arancel_bob
+      FROM servicios_aranceles
+      WHERE activo = 1
+      ORDER BY id ASC
+    `).all();
+  }
 }

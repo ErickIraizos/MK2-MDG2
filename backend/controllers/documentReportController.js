@@ -1,4 +1,6 @@
+import path from 'path';
 import { DocumentReportService } from '../services/documentReportService.js';
+import { storageService, PRIVATE_BUCKET } from '../services/storageService.js';
 
 const reportService = new DocumentReportService();
 
@@ -102,10 +104,20 @@ export class DocumentReportController {
   static async downloadSignedDocument(req, res, next) {
     try {
       const { id } = req.params;
-      const { filePath, report } = await reportService.getSignedDocument(Number(id), req.user);
-      const ext = filePath.split('.').pop() || 'pdf';
+      const { objectKey, report } = await reportService.getSignedDocument(Number(id), req.user);
+      const ext = path.extname(objectKey).replace('.', '') || 'pdf';
       const cleanFileName = `PSI_Aprende_Informe_Firmado_${report.paciente_codigo || 'EXP'}_${report.id}.${ext}`;
-      res.download(filePath, cleanFileName);
+
+      if (req.headers.authorization) {
+        const buffer = await storageService.downloadBuffer(PRIVATE_BUCKET, objectKey);
+        res.setHeader('Content-Disposition', `attachment; filename="${cleanFileName}"`);
+        return res.send(buffer);
+      }
+
+      const signedUrl = await storageService.createSignedUrl(PRIVATE_BUCKET, objectKey, 60, {
+        download: cleanFileName
+      });
+      return res.redirect(302, signedUrl);
     } catch (error) {
       next(error);
     }

@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
-import { DatabaseConnection } from '../core/DatabaseConnection.js';
+import { RepositoryFactory } from '../core/RepositoryFactory.js';
 import { AppError } from '../core/AppError.js';
 import { notificationService } from './notificationService.js';
 import { webPushService } from './webPushService.js';
@@ -24,14 +24,10 @@ class WhatsAppManager {
   constructor() {
     this.sessions = new Map(); // identifier -> { client, qr, qrDataUrl, status, phone, error, lastMessageAt }
     this.pendingDisambiguations = new Map(); // phone -> { appointments, action, expiresAt }
-    this.db = DatabaseConnection.getInstance();
   }
 
-  getDb() {
-    if (!this.db) {
-      this.db = DatabaseConnection.getInstance();
-    }
-    return this.db;
+  _repo() {
+    return RepositoryFactory.getWhatsappRepository();
   }
 
   cleanSessionLocks(id) {
@@ -63,52 +59,14 @@ class WhatsAppManager {
   }
 
   // Sincronizar dinámicamente: asegurar que todo terapeuta y administrador tenga registro en whatsapp_sesiones
-  ensureDynamicSessions() {
-    const db = this.getDb();
-    
-    // Obtener todos los terapeutas registrados
-    const therapists = db.prepare(`SELECT id, telefono FROM terapeutas`).all();
-    const insertSession = db.prepare(`
-      INSERT OR IGNORE INTO whatsapp_sesiones (terapeuta_id, estado, telefono_vinculado)
-      VALUES (?, 'DESCONECTADO', ?)
-    `);
-
-    for (const t of therapists) {
-      insertSession.run(t.id, t.telefono || null);
-    }
+  async ensureDynamicSessions() {
+    await this._repo().ensureDynamicSessions();
   }
 
   // 1. Obtener todas las sesiones dinámicamente (sin límite de 5)
   async getAllSessions() {
-    this.ensureDynamicSessions();
-    const db = this.getDb();
-    
-    const rows = db.prepare(`
-      SELECT 
-        ws.id,
-        ws.terapeuta_id,
-        ws.estado,
-        ws.telefono_vinculado,
-        ws.nombre_dispositivo,
-        ws.ultimo_qr_generado_at,
-        ws.ultimo_mensaje_at,
-        ws.conectado_at,
-        t.usuario_id,
-        t.nombres,
-        t.apellidos,
-        t.registro_profesional,
-        COALESCE(u.telefono, t.telefono) AS terapeuta_telefono_oficial,
-        t.color_agenda,
-        e.nombre AS especialidad_nombre,
-        a.codigo AS ambiente_codigo,
-        a.nombre AS ambiente_nombre
-      FROM terapeutas t
-      LEFT JOIN whatsapp_sesiones ws ON t.id = ws.terapeuta_id
-      LEFT JOIN usuarios u ON t.usuario_id = u.id
-      LEFT JOIN especialidades e ON t.especialidad_id = e.id
-      LEFT JOIN ambientes a ON t.ambiente_preferido_id = a.id
-      ORDER BY t.id ASC
-    `).all();
+    await this.ensureDynamicSessions();
+    const rows = await this._repo().getAllSessionsWithTherapists();
 
     return rows.map(row => {
       const live = this.sessions.get(row.terapeuta_id);
@@ -135,27 +93,15 @@ class WhatsAppManager {
 
   // 2. Obtener estado y QR de una sesión específica (por terapeuta_id o usuario_id)
   async getSession(therapistId) {
-    this.ensureDynamicSessions();
+    await this.ensureDynamicSessions();
     const id = parseInt(therapistId, 10);
-    const db = this.getDb();
+    const repo = this._repo();
 
-    let row = db.prepare(`
-      SELECT 
-        ws.*,
-        t.usuario_id,
-        t.nombres,
-        t.apellidos,
-        t.registro_profesional,
-        COALESCE(u.telefono, t.telefono) AS terapeuta_telefono_oficial
-      FROM terapeutas t
-      LEFT JOIN whatsapp_sesiones ws ON t.id = ws.terapeuta_id
-      LEFT JOIN usuarios u ON t.usuario_id = u.id
-      WHERE t.id = ? OR t.usuario_id = ?
-    `).get(id, id);
+    let row = await repo.getSessionRowByTherapistOrUserId(id);
 
     // Si es un admin puro sin perfil de terapeuta
     if (!row) {
-      const user = db.prepare(`SELECT id, nombre_completo, email, telefono, rol_id FROM usuarios WHERE id = ?`).get(id);
+      const user = await repo.getUserFallbackById(id);
       if (user) {
         const parts = (user.nombre_completo || 'Usuario').split(' ');
         row = {
@@ -196,9 +142,9 @@ class WhatsAppManager {
 
   // 3. Inicializar o solicitar vinculación QR individual
   async initializeSession(therapistId) {
-    this.ensureDynamicSessions();
+    await this.ensureDynamicSessions();
     const id = parseInt(therapistId, 10);
-    const db = this.getDb();
+    const repo = this._repo();
 
     const existing = this.sessions.get(id);
     if (existing && existing.status === 'CONECTADO') {
@@ -253,11 +199,7 @@ class WhatsAppManager {
     }
 
     // Actualizar estado en DB
-    db.prepare(`
-      UPDATE whatsapp_sesiones 
-      SET estado = 'INICIALIZANDO', updated_at = CURRENT_TIMESTAMP 
-      WHERE terapeuta_id = ?
-    `).run(id);
+    await repo.setSessionStatus(id, 'INICIALIZANDO');
 
     let resolveQr = null;
     const qrPromise = new Promise((resolve) => {
@@ -332,11 +274,7 @@ class WhatsAppManager {
           console.error('[WhatsAppManager] Error al generar DataURL:', qrErr);
         }
 
-        db.prepare(`
-          UPDATE whatsapp_sesiones 
-          SET estado = 'ESPERANDO_QR', ultimo_qr_generado_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-          WHERE terapeuta_id = ?
-        `).run(id);
+        repo.setSessionStatus(id, 'ESPERANDO_QR').catch(() => {});
 
         console.log(`[WhatsAppManager] Código QR OFICIAL recibido de WhatsApp Web para Usuario ID ${id}`);
         if (resolveQr) resolveQr(qr);
@@ -352,15 +290,7 @@ class WhatsAppManager {
         const phone = wid ? `+${wid}` : null;
         sessionState.phone = phone;
 
-        db.prepare(`
-          UPDATE whatsapp_sesiones 
-          SET estado = 'CONECTADO', 
-              telefono_vinculado = COALESCE(?, telefono_vinculado),
-              nombre_dispositivo = 'WhatsApp Web Móvil',
-              conectado_at = CURRENT_TIMESTAMP,
-              updated_at = CURRENT_TIMESTAMP
-          WHERE terapeuta_id = ?
-        `).run(phone, id);
+        repo.setSessionStatus(id, 'CONECTADO', { phone }).catch(() => {});
 
         console.log(`[WhatsAppManager] ¡Sesión WhatsApp CONECTADA para Usuario ID ${id}! (${phone})`);
       });
@@ -381,11 +311,7 @@ class WhatsAppManager {
         console.warn(`[WhatsAppManager] Fallo auth Usuario ID ${id}:`, msg);
         sessionState.status = 'DESCONECTADO';
         sessionState.error = msg;
-        db.prepare(`
-          UPDATE whatsapp_sesiones 
-          SET estado = 'DESCONECTADO', updated_at = CURRENT_TIMESTAMP 
-          WHERE terapeuta_id = ?
-        `).run(id);
+        repo.setSessionStatus(id, 'DESCONECTADO').catch(() => {});
       });
 
       client.on('disconnected', (reason) => {
@@ -393,11 +319,7 @@ class WhatsAppManager {
         sessionState.status = 'DESCONECTADO';
         sessionState.client = null;
         sessionState.qrDataUrl = null;
-        db.prepare(`
-          UPDATE whatsapp_sesiones 
-          SET estado = 'DESCONECTADO', updated_at = CURRENT_TIMESTAMP 
-          WHERE terapeuta_id = ?
-        `).run(id);
+        repo.setSessionStatus(id, 'DESCONECTADO').catch(() => {});
       });
 
       // Iniciar Puppeteer de forma protegida
@@ -441,11 +363,7 @@ class WhatsAppManager {
       sessionState.status = 'DESCONECTADO';
       sessionState.error = err.message;
 
-      db.prepare(`
-        UPDATE whatsapp_sesiones 
-        SET estado = 'DESCONECTADO', updated_at = CURRENT_TIMESTAMP 
-        WHERE terapeuta_id = ?
-      `).run(id);
+      await repo.setSessionStatus(id, 'DESCONECTADO');
 
       throw new AppError(`Error al iniciar la sesión de WhatsApp: ${err.message}`, 500);
     }
@@ -454,7 +372,7 @@ class WhatsAppManager {
   // 4. Desconectar y cerrar sesión
   async disconnectSession(therapistId) {
     const id = parseInt(therapistId, 10);
-    const db = this.getDb();
+    const repo = this._repo();
     const live = this.sessions.get(id);
 
     if (live && live.client) {
@@ -476,11 +394,7 @@ class WhatsAppManager {
       } catch (e) {}
     }
 
-    db.prepare(`
-      UPDATE whatsapp_sesiones 
-      SET estado = 'DESCONECTADO', conectado_at = NULL, updated_at = CURRENT_TIMESTAMP 
-      WHERE terapeuta_id = ?
-    `).run(id);
+    await repo.setSessionStatus(id, 'DESCONECTADO', { clearConnectedAt: true });
 
     return {
       success: true,
@@ -523,7 +437,7 @@ class WhatsAppManager {
   // 4b. Auto-reanudar sesión existente en disco (LocalAuth) sin requerir nuevo QR
   async autoResumeSession(therapistId) {
     const id = parseInt(therapistId, 10);
-    const db = this.getDb();
+    const repo = this._repo();
 
     const existing = this.sessions.get(id);
     if (existing && existing.status === 'CONECTADO') {
@@ -609,15 +523,7 @@ class WhatsAppManager {
         const phone = wid ? `+${wid}` : null;
         sessionState.phone = phone;
 
-        db.prepare(`
-          UPDATE whatsapp_sesiones 
-          SET estado = 'CONECTADO', 
-              telefono_vinculado = COALESCE(?, telefono_vinculado),
-              nombre_dispositivo = 'WhatsApp Web Móvil',
-              conectado_at = COALESCE(conectado_at, CURRENT_TIMESTAMP),
-              updated_at = CURRENT_TIMESTAMP
-          WHERE terapeuta_id = ?
-        `).run(phone, id);
+        repo.setSessionStatus(id, 'CONECTADO', { phone, preserveConnectedAt: true }).catch(() => {});
 
         console.log(`[WhatsAppManager] Sesión auto-reanudada exitosamente para ID ${id} (${phone})`);
         if (resolveReady) resolveReady(sessionState);
@@ -642,11 +548,7 @@ class WhatsAppManager {
           });
         } catch (e) {}
 
-        db.prepare(`
-          UPDATE whatsapp_sesiones 
-          SET estado = 'ESPERANDO_QR', ultimo_qr_generado_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-          WHERE terapeuta_id = ?
-        `).run(id);
+        repo.setSessionStatus(id, 'ESPERANDO_QR').catch(() => {});
 
         if (resolveReady) resolveReady(null);
       });
@@ -655,14 +557,14 @@ class WhatsAppManager {
         console.warn(`[WhatsAppManager] Fallo de auth en sesión reanudada ${id}:`, msg);
         sessionState.status = 'DESCONECTADO';
         sessionState.error = msg;
-        db.prepare(`UPDATE whatsapp_sesiones SET estado = 'DESCONECTADO', updated_at = CURRENT_TIMESTAMP WHERE terapeuta_id = ?`).run(id);
+        repo.setSessionStatus(id, 'DESCONECTADO').catch(() => {});
         if (resolveReady) resolveReady(null);
       });
 
       client.on('disconnected', () => {
         sessionState.status = 'DESCONECTADO';
         sessionState.client = null;
-        db.prepare(`UPDATE whatsapp_sesiones SET estado = 'DESCONECTADO', updated_at = CURRENT_TIMESTAMP WHERE terapeuta_id = ?`).run(id);
+        repo.setSessionStatus(id, 'DESCONECTADO').catch(() => {});
       });
 
       client.initialize().catch((err) => {
@@ -681,12 +583,9 @@ class WhatsAppManager {
   // 4c. Auto-restaurar todas las sesiones vinculadas al arrancar el servidor
   async autoRestoreConnectedSessions() {
     try {
-      this.ensureDynamicSessions();
-      const db = this.getDb();
-      const connectedRows = db.prepare(`
-        SELECT terapeuta_id FROM whatsapp_sesiones 
-        WHERE estado = 'CONECTADO'
-      `).all();
+      await this.ensureDynamicSessions();
+      const repo = this._repo();
+      const connectedRows = await repo.getConnectedSessions();
 
       for (const row of connectedRows) {
         const sessionDir = path.resolve(AUTH_DIR, `session-session_${row.terapeuta_id}`);
@@ -694,7 +593,7 @@ class WhatsAppManager {
           console.log(`[WhatsAppManager] Auto-restaurando sesión vinculada para especialista ${row.terapeuta_id}...`);
           this.autoResumeSession(row.terapeuta_id).catch(() => {});
         } else {
-          db.prepare(`UPDATE whatsapp_sesiones SET estado = 'DESCONECTADO' WHERE terapeuta_id = ?`).run(row.terapeuta_id);
+          await repo.setSessionStatus(row.terapeuta_id, 'DESCONECTADO');
         }
       }
     } catch (e) {
@@ -928,12 +827,7 @@ class WhatsAppManager {
           }
         }
         
-        const db = this.getDb();
-        db.prepare(`
-          UPDATE whatsapp_sesiones 
-          SET ultimo_mensaje_at = CURRENT_TIMESTAMP 
-          WHERE terapeuta_id = ?
-        `).run(id);
+        await this._repo().touchLastMessageAt(id);
 
         return {
           success: true,
@@ -1033,7 +927,7 @@ class WhatsAppManager {
     if (!body) return;
 
     const lower = body.toLowerCase();
-    const db = this.getDb();
+    const repo = this._repo();
 
     // 1. Determinar la acción solicitada por el tutor
     const isConfirm = lower === '1' || lower.startsWith('1') || lower.includes('confirm') || lower.includes('asist') || lower.includes('si');
@@ -1050,38 +944,13 @@ class WhatsAppManager {
     // 2. Buscar si el remitente es un tutor registrado (búsqueda bidireccional segura)
     let tutor = null;
     if (cleanDigits && cleanDigits.length >= 7) {
-      tutor = db.prepare(`
-        SELECT * FROM tutores 
-        WHERE ? LIKE '%' || REPLACE(REPLACE(REPLACE(whatsapp, '+', ''), ' ', ''), '-', '') || '%'
-           OR REPLACE(REPLACE(REPLACE(whatsapp, '+', ''), ' ', ''), '-', '') LIKE '%' || ? || '%'
-           OR REPLACE(REPLACE(REPLACE(whatsapp, '+', ''), ' ', ''), '-', '') LIKE '%' || ? || '%'
-        LIMIT 1
-      `).get(cleanDigits, cleanDigits, localPhone);
+      tutor = await repo.findTutorByPhoneDigits(cleanDigits, localPhone);
     }
 
     // 3. Fallback inteligente de contexto: Si WhatsApp ofusca el número en @lid y no se encontró tutor por dígitos
     if (!tutor) {
       console.log(`[WhatsAppManager] Número no mapeado directamente (${cleanDigits || msg.from}). Buscando última cita recordada por especialista ID ${therapistId}...`);
-      const recentAppointment = db.prepare(`
-        SELECT 
-          c.id, c.paciente_id, c.terapeuta_id, c.ambiente_id, c.fecha_hora_inicio, c.fecha_hora_fin, c.estado,
-          p.nombres AS paciente_nombres, p.apellidos AS paciente_apellidos,
-          t.usuario_id AS terapeuta_usuario_id, t.nombres AS terapeuta_nombres, t.apellidos AS terapeuta_apellidos,
-          a.nombre AS ambiente_nombre, a.codigo AS ambiente_codigo,
-          tut.id AS tutor_id, tut.nombres AS tutor_nombres, tut.apellidos AS tutor_apellidos, tut.whatsapp AS tutor_whatsapp, tut.usuario_id AS tutor_usuario_id
-        FROM recordatorios_citas rc
-        JOIN citas c ON rc.cita_id = c.id
-        JOIN pacientes p ON c.paciente_id = p.id
-        JOIN paciente_tutor pt ON pt.paciente_id = p.id
-        JOIN tutores tut ON pt.tutor_id = tut.id
-        JOIN terapeutas t ON c.terapeuta_id = t.id
-        JOIN ambientes a ON c.ambiente_id = a.id
-        WHERE c.terapeuta_id = ?
-          AND rc.estado = 'ENVIADO'
-          AND c.estado IN ('PROGRAMADA', 'CONFIRMADA')
-        ORDER BY rc.id DESC
-        LIMIT 1
-      `).get(therapistId);
+      const recentAppointment = await repo.getLatestSentReminderAppointmentByTherapist(therapistId);
 
       if (recentAppointment) {
         tutor = {
@@ -1133,25 +1002,7 @@ class WhatsAppManager {
     }
 
     // 5. PRIORIDAD 1: Buscar la cita vinculada al recordatorio más reciente enviado a este tutor
-    const lastReminderCita = db.prepare(`
-      SELECT 
-        c.id, c.paciente_id, c.terapeuta_id, c.ambiente_id, c.fecha_hora_inicio, c.fecha_hora_fin, c.estado,
-        p.nombres AS paciente_nombres, p.apellidos AS paciente_apellidos,
-        t.usuario_id AS terapeuta_usuario_id, t.nombres AS terapeuta_nombres, t.apellidos AS terapeuta_apellidos,
-        a.nombre AS ambiente_nombre, a.codigo AS ambiente_codigo
-      FROM recordatorios_citas rc
-      JOIN citas c ON rc.cita_id = c.id
-      JOIN pacientes p ON c.paciente_id = p.id
-      JOIN paciente_tutor pt ON pt.paciente_id = p.id
-      JOIN tutores tut ON pt.tutor_id = tut.id
-      JOIN terapeutas t ON c.terapeuta_id = t.id
-      JOIN ambientes a ON c.ambiente_id = a.id
-      WHERE tut.id = ? 
-        AND rc.estado = 'ENVIADO' 
-        AND c.estado IN ('PROGRAMADA', 'CONFIRMADA')
-      ORDER BY rc.id DESC 
-      LIMIT 1
-    `).get(tutor.id);
+    const lastReminderCita = await repo.getLatestSentReminderAppointmentByTutor(tutor.id);
 
     if (lastReminderCita) {
       console.log(`[WhatsAppManager] Respuesta vinculada al recordatorio reciente de Cita #${lastReminderCita.id} (${lastReminderCita.paciente_nombres})`);
@@ -1160,24 +1011,7 @@ class WhatsAppManager {
     }
 
     // 6. PRIORIDAD 2: Si no hubo recordatorio directo reciente, buscar citas próximas activas en fecha de hoy o futuro
-    const upcoming = db.prepare(`
-      SELECT 
-        c.id, c.paciente_id, c.terapeuta_id, c.ambiente_id, c.fecha_hora_inicio, c.fecha_hora_fin, c.estado,
-        p.nombres AS paciente_nombres, p.apellidos AS paciente_apellidos,
-        t.usuario_id AS terapeuta_usuario_id, t.nombres AS terapeuta_nombres, t.apellidos AS terapeuta_apellidos,
-        a.nombre AS ambiente_nombre, a.codigo AS ambiente_codigo
-      FROM citas c
-      JOIN pacientes p ON c.paciente_id = p.id
-      JOIN paciente_tutor pt ON pt.paciente_id = p.id
-      JOIN tutores tut ON pt.tutor_id = tut.id
-      JOIN terapeutas t ON c.terapeuta_id = t.id
-      JOIN ambientes a ON c.ambiente_id = a.id
-      WHERE tut.id = ?
-        AND c.estado IN ('PROGRAMADA', 'CONFIRMADA')
-        AND date(c.fecha_hora_inicio) >= date('now', '-1 day')
-      ORDER BY c.fecha_hora_inicio ASC
-      LIMIT 4
-    `).all(tutor.id);
+    const upcoming = await repo.getUpcomingTutorAppointments(tutor.id);
 
     if (upcoming.length === 0) {
       // Cita fuera de plazo o no encontrada
@@ -1246,7 +1080,7 @@ Por favor responda a este mensaje con:
   }
 
   async applyAppointmentAction(therapistId, cita, tutor, action, fromChatId) {
-    const db = this.getDb();
+    const repo = this._repo();
     const pacienteNombre = `${cita.paciente_nombres} ${cita.paciente_apellidos || ''}`.trim();
     const tutorNombre = `${tutor.nombres} ${tutor.apellidos || ''}`.trim();
     const hora = this.formatTime(cita.fecha_hora_inicio);
@@ -1256,12 +1090,12 @@ Por favor responda a este mensaje con:
 
     if (action === 'CONFIRM') {
       // 1. Actualizar cita a CONFIRMADA
-      db.prepare(`UPDATE citas SET estado = 'CONFIRMADA', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(cita.id);
+      await repo.updateAppointmentStateFromWhatsapp(cita.id, 'CONFIRMADA');
 
       // 2. Notificación humana al terapeuta (no solo un 1)
       const notifMsg = `El tutor ${tutorNombre} confirmó la cita de ${pacienteNombre}: 'Confirmo mi cita'`;
       if (cita.terapeuta_usuario_id) {
-        notificationService.createNotification({
+        await notificationService.createNotification({
           userId: cita.terapeuta_usuario_id,
           tipo: 'CITA_CONFIRMADA',
           titulo: 'Cita Confirmada por WhatsApp',
@@ -1317,12 +1151,12 @@ Confirmado, los estaremos esperando puntualmente con 5 minutos de anticipación.
 
     } else if (action === 'RESCHEDULE') {
       // 1. Actualizar cita a REPROGRAMADA
-      db.prepare(`UPDATE citas SET estado = 'REPROGRAMADA', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(cita.id);
+      await repo.updateAppointmentStateFromWhatsapp(cita.id, 'REPROGRAMADA');
 
       // 2. Notificación formal al terapeuta y recepción
       const notifMsg = `El tutor ${tutorNombre} solicitó reprogramar la cita de ${pacienteNombre}: 'Solicito reprogramar mi cita'`;
       if (cita.terapeuta_usuario_id) {
-        notificationService.createNotification({
+        await notificationService.createNotification({
           userId: cita.terapeuta_usuario_id,
           tipo: 'CITA_REPROGRAMADA',
           titulo: 'Solicitud de Reprogramación (WhatsApp)',

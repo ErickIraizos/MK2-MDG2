@@ -1,6 +1,3 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import {
   Document,
   Paragraph,
@@ -18,14 +15,7 @@ import {
 import { RepositoryFactory } from '../core/RepositoryFactory.js';
 import { AppError } from '../core/AppError.js';
 import { assertPatientAccess } from '../core/accessControl.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const REPORTS_DIR = path.resolve(__dirname, '../uploads/reports');
-
-if (!fs.existsSync(REPORTS_DIR)) {
-  fs.mkdirSync(REPORTS_DIR, { recursive: true });
-}
+import { storageService, PRIVATE_BUCKET, extractStorageKey } from './storageService.js';
 
 export class DocumentReportService {
   constructor() {
@@ -210,11 +200,12 @@ export class DocumentReportService {
       throw new AppError('Solo un administrador puede eliminar un informe emitido formalmente', 403, 'FORBIDDEN');
     }
 
-    // Eliminar archivo físico si existe
-    if (existing.ruta_docx && fs.existsSync(existing.ruta_docx)) {
-      try {
-        fs.unlinkSync(existing.ruta_docx);
-      } catch (e) {}
+    // Eliminar objetos en Supabase Storage si existen
+    if (existing.ruta_docx) {
+      await storageService.deleteObject(PRIVATE_BUCKET, extractStorageKey(existing.ruta_docx, 'reports', PRIVATE_BUCKET));
+    }
+    if (existing.ruta_archivo_firmado) {
+      await storageService.deleteObject(PRIVATE_BUCKET, extractStorageKey(existing.ruta_archivo_firmado, 'reports', PRIVATE_BUCKET));
     }
 
     return this.reportRepo.deleteReport(id);
@@ -222,20 +213,23 @@ export class DocumentReportService {
 
   async uploadSignedDocument(id, file, currentUser = null) {
     const report = await this.getReportById(id, currentUser);
-    if (!file || !file.path) {
+    if (!file || !file.buffer) {
       throw new AppError('No se recibió ningún archivo firmado válido', 400, 'FILE_REQUIRED');
     }
 
-    await this.reportRepo.updateReport(id, { 
-      ruta_archivo_firmado: file.path,
-      estado: 'FIRMADO' 
+    const objectKey = `reports/${storageService.buildSafeFilename(`informe_firmado_${id}`, file.originalname || 'informe.pdf')}`;
+    await storageService.uploadPrivate(objectKey, file.buffer, file.mimetype);
+
+    await this.reportRepo.updateReport(id, {
+      ruta_archivo_firmado: objectKey,
+      estado: 'FIRMADO'
     });
 
     return {
       success: true,
       message: 'Informe firmado adjuntado con éxito al expediente',
       reportId: id,
-      ruta: file.path
+      ruta: objectKey
     };
   }
 
@@ -306,26 +300,38 @@ export class DocumentReportService {
 
   async getSignedDocument(id, currentUser = null) {
     const report = await this.getReportById(id, currentUser);
-    if (!report.ruta_archivo_firmado || !fs.existsSync(report.ruta_archivo_firmado)) {
-      throw new AppError('No se encontró el documento firmado escaneado en el servidor', 404, 'NOT_FOUND');
+    const objectKey = extractStorageKey(report.ruta_archivo_firmado, 'reports', PRIVATE_BUCKET);
+    if (!objectKey) {
+      throw new AppError('No se encontró el documento firmado escaneado en el almacenamiento', 404, 'NOT_FOUND');
     }
     return {
-      filePath: report.ruta_archivo_firmado,
+      objectKey,
       report
     };
   }
 
   async getDocxBuffer(id, currentUser = null) {
     const report = await this.getReportById(id, currentUser);
-    let filePath = report.ruta_docx;
-    if (!filePath || !fs.existsSync(filePath)) {
-      // Si el archivo físico no existe, recompilar en caliente
-      filePath = await this._compileDocx(report);
-      await this.reportRepo.updateDocxPath(id, filePath);
+    let objectKey = extractStorageKey(report.ruta_docx, 'reports', PRIVATE_BUCKET);
+    let buffer = null;
+
+    if (objectKey) {
+      try {
+        buffer = await storageService.downloadBuffer(PRIVATE_BUCKET, objectKey);
+      } catch {
+        buffer = null;
+      }
+    }
+
+    if (!buffer) {
+      // Si el objeto aún no existe en Storage, recompilar en caliente y subirlo a psi-private
+      objectKey = await this._compileDocx(report);
+      await this.reportRepo.updateDocxPath(id, objectKey);
+      buffer = await storageService.downloadBuffer(PRIVATE_BUCKET, objectKey);
     }
 
     return {
-      buffer: fs.readFileSync(filePath),
+      buffer,
       filename: `PSI_Aprende_Informe_${report.paciente_codigo || 'EXP'}_${report.id}.docx`,
       report
     };
@@ -946,10 +952,14 @@ export class DocumentReportService {
 
     const buffer = await Packer.toBuffer(doc);
     const fileName = `informe_${report.paciente_codigo || 'EXP'}_${report.id}.docx`;
-    const filePath = path.join(REPORTS_DIR, fileName);
+    const objectKey = `reports/${fileName}`;
 
-    fs.writeFileSync(filePath, buffer);
-    return filePath;
+    await storageService.uploadPrivate(
+      objectKey,
+      buffer,
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    );
+    return objectKey;
   }
 
   _parseAge(birthDateStr) {

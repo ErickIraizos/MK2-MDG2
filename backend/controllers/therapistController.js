@@ -1,4 +1,5 @@
 import { TherapistService } from '../services/therapistService.js';
+import { storageService } from '../services/storageService.js';
 
 const therapistService = new TherapistService();
 
@@ -56,9 +57,8 @@ export class TherapistController {
         });
       }
 
-      const fileUrl = `/uploads/therapists/${req.file.filename}`;
       if (req.params.id) {
-        // Verificar si es ADMIN o el propio terapeuta
+        // Verificar si es ADMIN o el propio terapeuta antes de subir el archivo
         const existing = await therapistService.getTherapistById(req.params.id);
         if (req.user.rol !== 'ADMIN' && existing.usuario_id !== req.user.id) {
           return res.status(403).json({
@@ -66,15 +66,21 @@ export class TherapistController {
             error: { message: 'No tiene permiso para modificar la foto de otro terapeuta.' }
           });
         }
-        await therapistService.updateTherapist(req.params.id, { foto_url: fileUrl }, req.user?.id, req.ip);
+      }
+
+      const objectPath = `therapists/${storageService.buildSafeFilename('therapist', req.file.originalname)}`;
+      const uploaded = await storageService.uploadPublic(objectPath, req.file.buffer, req.file.mimetype);
+
+      if (req.params.id) {
+        await therapistService.updateTherapist(req.params.id, { foto_url: uploaded.publicUrl }, req.user?.id, req.ip);
       }
 
       res.status(200).json({
         success: true,
         message: 'Foto de perfil subida exitosamente.',
         data: {
-          url: fileUrl,
-          filename: req.file.filename,
+          url: uploaded.publicUrl,
+          filename: uploaded.path,
           size: req.file.size
         }
       });

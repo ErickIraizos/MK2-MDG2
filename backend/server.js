@@ -6,6 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { config } from './config/environment.js';
 import { DatabaseConnection } from './core/DatabaseConnection.js';
+import { PostgresConnection } from './core/PostgresConnection.js';
 import { errorHandlerMiddleware } from './middlewares/errorHandlerMiddleware.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -68,18 +69,16 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// Bloquear acceso estático público a archivos clínicos y comprobantes financieros privados
-app.use(['/uploads/receipts', '/uploads/reports', '/uploads/patient_documents', '/uploads/consents'], (req, res) => {
+// Bloquear acceso estático público a rutas antiguas de /uploads (archivos alojados en Supabase Storage)
+app.use('/uploads', (req, res) => {
   return res.status(403).json({
     success: false,
     error: {
       code: 'FORBIDDEN_STATIC_ACCESS',
-      message: 'Acceso directo denegado. Utilice las rutas autenticadas de la API para consultar archivos privados.'
+      message: 'Acceso directo denegado. Los archivos se sirven mediante Supabase Storage o rutas autenticadas de la API.'
     }
   });
 });
-
-app.use('/uploads', express.static(path.resolve(__dirname, 'uploads')));
 
 if (config.env === 'development') {
   app.use(morgan('dev'));
@@ -133,31 +132,42 @@ app.use('*', (req, res) => {
 app.use(errorHandlerMiddleware);
 
 // 6. Inicialización de base de datos y arranque del servidor
-try {
-  DatabaseConnection.getInstance();
-  const PORT = config.port;
+async function startServer() {
+  try {
+    const isPostgres = config.database.driver === 'postgres' || config.database.driver === 'postgresql';
+    if (isPostgres) {
+      const info = await PostgresConnection.verifyConnection();
+      console.log(`[Database] Conectado exitosamente a PostgreSQL (${info.db}) en zona America/La_Paz`);
+    } else {
+      DatabaseConnection.getInstance();
+    }
 
-  app.listen(PORT, () => {
-    console.log(`==================================================================`);
-    console.log(`[BACKEND] Servidor API REST PSI Aprende en ejecución`);
-    console.log(`[SERVER]  URL Base: http://localhost:${PORT}`);
-    console.log(`[SERVER]  Health Check: http://localhost:${PORT}/api/health`);
-    console.log(`[DATABASE] Motor Activo: SQLite (${config.database.sqlitePath})`);
-    console.log(`==================================================================`);
+    const PORT = config.port;
 
-    // Auto-restaurar en segundo plano las sesiones vinculadas de WhatsApp
-    import('./services/whatsappManager.js').then(({ whatsappManager }) => {
-      whatsappManager.autoRestoreConnectedSessions();
-    }).catch(e => console.warn('[WhatsApp] Aviso al auto-iniciar sesiones:', e.message));
+    app.listen(PORT, () => {
+      console.log(`==================================================================`);
+      console.log(`[BACKEND] Servidor API REST PSI Aprende en ejecución`);
+      console.log(`[SERVER]  URL Base: http://localhost:${PORT}`);
+      console.log(`[SERVER]  Health Check: http://localhost:${PORT}/api/health`);
+      console.log(`[DATABASE] Motor Activo: ${isPostgres ? 'PostgreSQL (Supabase)' : `SQLite (${config.database.sqlitePath})`}`);
+      console.log(`==================================================================`);
 
-    // Iniciar el motor de recordatorios automáticos 24h / 2h (Sprint 8 - HU-12)
-    import('./services/appointmentSchedulerService.js').then(({ appointmentSchedulerService }) => {
-      appointmentSchedulerService.start();
-    }).catch(e => console.warn('[Scheduler] Aviso al iniciar motor de recordatorios:', e.message));
-  });
-} catch (err) {
-  console.error('[ERROR] Error fatal al iniciar el backend:', err);
-  process.exit(1);
+      // Auto-restaurar en segundo plano las sesiones vinculadas de WhatsApp
+      import('./services/whatsappManager.js').then(({ whatsappManager }) => {
+        whatsappManager.autoRestoreConnectedSessions();
+      }).catch(e => console.warn('[WhatsApp] Aviso al auto-iniciar sesiones:', e.message));
+
+      // Iniciar el motor de recordatorios automáticos 24h / 2h (Sprint 8 - HU-12)
+      import('./services/appointmentSchedulerService.js').then(({ appointmentSchedulerService }) => {
+        appointmentSchedulerService.start();
+      }).catch(e => console.warn('[Scheduler] Aviso al iniciar motor de recordatorios:', e.message));
+    });
+  } catch (err) {
+    console.error('[ERROR] Error fatal al iniciar el backend:', err);
+    process.exit(1);
+  }
 }
+
+startServer();
 
 export default app;

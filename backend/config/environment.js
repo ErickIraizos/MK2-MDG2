@@ -18,21 +18,27 @@ if (!jwtSecret) {
   console.warn('[SECURITY WARN] JWT_SECRET no está definido en backend/.env; usando clave de desarrollo local.');
 }
 
+const rawDriver = (process.env.DB_DRIVER || process.env.DATABASE_DRIVER || 'sqlite').trim().toLowerCase();
+
 export const config = {
   env: nodeEnv,
   port: parseInt(process.env.PORT, 10) || 3001,
   database: {
-    driver: process.env.DATABASE_DRIVER || 'sqlite',
-    sqlitePath: process.env.SQLITE_DB_PATH 
+    driver: rawDriver,
+    sqlitePath: process.env.SQLITE_DB_PATH
       ? path.resolve(__dirname, '..', process.env.SQLITE_DB_PATH)
-      : path.resolve(__dirname, '../database/sqlite/psi_aprende.db')
+      : path.resolve(__dirname, '../database/sqlite/psi_aprende.db'),
+    postgresUrl: process.env.DIRECT_URL || process.env.DATABASE_URL || '',
+    postgresPoolUrl: process.env.DATABASE_URL || process.env.DIRECT_URL || '',
+    supabaseUrl: process.env.SUPABASE_URL || '',
+    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || ''
   },
   jwt: {
     secret: jwtSecret || 'psi_aprende_fallback_secret_key_2026',
     expiresIn: process.env.JWT_EXPIRES_IN || '8h'
   },
   cors: {
-    origins: (process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:3000').split(',')
+    origins: (process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:3000').split(',').map(o => o.trim()).filter(Boolean)
   },
   groq: {
     initialApiKey: process.env.GROQ_API_KEY || ''

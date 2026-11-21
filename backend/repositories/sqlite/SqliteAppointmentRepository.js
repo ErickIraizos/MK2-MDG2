@@ -566,7 +566,7 @@ export class SqliteAppointmentRepository extends IAppointmentRepository {
     }
 
     // Cancelar recordatorios previos pendientes para no duplicar
-    this.cancelPendingRemindersByCitaId(citaId);
+    await this.cancelPendingRemindersByCitaId(citaId);
 
     const stmt = this.db.prepare(`
       INSERT INTO recordatorios_citas (
@@ -577,15 +577,27 @@ export class SqliteAppointmentRepository extends IAppointmentRepository {
     return this.getReminderById(info.lastInsertRowid);
   }
 
-  getReminderById(id) {
+  async getPrimaryTutorUserIdByPatientId(pacienteId) {
+    const pt = this.db.prepare(`
+      SELECT tut.usuario_id
+      FROM paciente_tutor pt
+      JOIN tutores tut ON pt.tutor_id = tut.id
+      WHERE pt.paciente_id = ?
+      ORDER BY pt.es_principal DESC
+      LIMIT 1
+    `).get(pacienteId);
+    return pt?.usuario_id || null;
+  }
+
+  async getReminderById(id) {
     return this.db.prepare(`SELECT * FROM recordatorios_citas WHERE id = ?`).get(id) || null;
   }
 
-  getRemindersByCitaId(citaId) {
+  async getRemindersByCitaId(citaId) {
     return this.db.prepare(`SELECT * FROM recordatorios_citas WHERE cita_id = ? ORDER BY id DESC`).all(citaId);
   }
 
-  getPendingRemindersDue(nowIso = null) {
+  async getPendingRemindersDue(nowIso = null) {
     const current = nowIso || new Date().toISOString().replace('T', ' ').slice(0, 19);
     return this.db.prepare(`
       SELECT 
@@ -609,7 +621,7 @@ export class SqliteAppointmentRepository extends IAppointmentRepository {
     `).all(current);
   }
 
-  updateReminderStatus(id, estado, { enviadoAt = null, errorMensaje = null } = {}) {
+  async updateReminderStatus(id, estado, { enviadoAt = null, errorMensaje = null } = {}) {
     return this.db.prepare(`
       UPDATE recordatorios_citas
       SET estado = ?, enviado_at = COALESCE(?, enviado_at), error_mensaje = ?, updated_at = CURRENT_TIMESTAMP
@@ -617,7 +629,7 @@ export class SqliteAppointmentRepository extends IAppointmentRepository {
     `).run(estado, enviadoAt, errorMensaje, id);
   }
 
-  cancelPendingRemindersByCitaId(citaId) {
+  async cancelPendingRemindersByCitaId(citaId) {
     return this.db.prepare(`
       UPDATE recordatorios_citas
       SET estado = 'CANCELADO', updated_at = CURRENT_TIMESTAMP
@@ -625,7 +637,7 @@ export class SqliteAppointmentRepository extends IAppointmentRepository {
     `).run(citaId);
   }
 
-  updateScheduledDateByCitaId(citaId, newStartIso) {
+  async updateScheduledDateByCitaId(citaId, newStartIso) {
     const reminders = this.db.prepare(`
       SELECT id, anticipacion_minutos FROM recordatorios_citas WHERE cita_id = ? AND estado = 'PENDIENTE'
     `).all(citaId);
@@ -639,6 +651,44 @@ export class SqliteAppointmentRepository extends IAppointmentRepository {
         SET fecha_programada_envio = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).run(scheduleDate, r.id);
+    }
+  }
+
+  async getUpcomingAppointmentsForReminderWindow(flagColumn, startIso, endIso) {
+    const allowedFlag = flagColumn === 'recordatorio_24h_enviado' ? 'recordatorio_24h_enviado' : 'recordatorio_2h_enviado';
+    return this.db.prepare(`
+      SELECT
+        c.id, c.paciente_id, c.terapeuta_id, c.ambiente_id, c.fecha_hora_inicio, c.fecha_hora_fin, c.estado,
+        p.nombres AS paciente_nombres, p.apellidos AS paciente_apellidos, p.codigo_expediente,
+        t.nombres AS terapeuta_nombres, t.apellidos AS terapeuta_apellidos, t.usuario_id AS terapeuta_usuario_id,
+        a.codigo AS ambiente_codigo, a.nombre AS ambiente_nombre,
+        tut.nombres AS tutor_nombres, tut.apellidos AS tutor_apellidos, tut.whatsapp AS tutor_telefono, tut.usuario_id AS tutor_usuario_id
+      FROM citas c
+      JOIN pacientes p ON c.paciente_id = p.id
+      JOIN terapeutas t ON c.terapeuta_id = t.id
+      JOIN ambientes a ON c.ambiente_id = a.id
+      LEFT JOIN paciente_tutor pt ON p.id = pt.paciente_id AND pt.es_principal = 1
+      LEFT JOIN tutores tut ON pt.tutor_id = tut.id
+      WHERE c.estado IN ('PROGRAMADA', 'CONFIRMADA')
+        AND c.${allowedFlag} = 0
+        AND c.fecha_hora_inicio BETWEEN ? AND ?
+      ORDER BY c.fecha_hora_inicio ASC
+    `).all(startIso, endIso);
+  }
+
+  async markWindowReminderSent(citaId, windowType) {
+    if (windowType === '24H') {
+      this.db.prepare(`
+        UPDATE citas
+        SET recordatorio_24h_enviado = 1, recordatorio_24h_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(citaId);
+    } else {
+      this.db.prepare(`
+        UPDATE citas
+        SET recordatorio_2h_enviado = 1, recordatorio_2h_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(citaId);
     }
   }
 }

@@ -1,4 +1,5 @@
 import { ConfigService } from '../services/configService.js';
+import { storageService } from '../services/storageService.js';
 
 const configService = new ConfigService();
 
@@ -61,13 +62,15 @@ export class ConfigController {
         });
       }
 
-      const fileUrl = `/uploads/instalaciones/${req.file.filename}`;
+      const objectPath = `instalaciones/${storageService.buildSafeFilename('facility', req.file.originalname)}`;
+      const uploaded = await storageService.uploadPublic(objectPath, req.file.buffer, req.file.mimetype);
+
       res.status(200).json({
         success: true,
         message: 'Fotografía de instalación subida exitosamente.',
         data: {
-          url: fileUrl,
-          filename: req.file.filename,
+          url: uploaded.publicUrl,
+          filename: uploaded.path,
           size: req.file.size
         }
       });

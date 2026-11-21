@@ -90,6 +90,32 @@ export class SqlitePatientRepository extends IPatientRepository {
     return stmt.get(userId) || null;
   }
 
+  async getPatientAccessSnapshot(pacienteId) {
+    return this.db.prepare(`
+      SELECT id, terapeuta_id, creado_por_usuario_id
+      FROM pacientes
+      WHERE id = ?
+    `).get(pacienteId) || null;
+  }
+
+  async hasActiveDerivation(pacienteId, therapistId) {
+    return Boolean(this.db.prepare(`
+      SELECT 1 FROM derivaciones_pacientes
+      WHERE paciente_id = ?
+        AND estado = 'ACTIVA'
+        AND (terapeuta_destino_id = ? OR terapeuta_origen_id = ?)
+      LIMIT 1
+    `).get(pacienteId, therapistId, therapistId));
+  }
+
+  async hasTutorLink(pacienteId, tutorId) {
+    return Boolean(this.db.prepare(`
+      SELECT 1 FROM paciente_tutor
+      WHERE paciente_id = ? AND tutor_id = ?
+      LIMIT 1
+    `).get(pacienteId, tutorId));
+  }
+
   async findAll(filters = {}) {
     let query = `
       SELECT p.*,

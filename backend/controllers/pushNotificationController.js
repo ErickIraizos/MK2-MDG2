@@ -6,7 +6,7 @@ export class PushNotificationController {
   // 1. Obtener clave pública VAPID para suscripción en frontend
   static async getVapidPublicKey(req, res, next) {
     try {
-      const publicKey = webPushService.getPublicKey();
+      const publicKey = await webPushService.getPublicKey();
       res.status(200).json({
         success: true,
         data: { publicKey }
@@ -30,7 +30,7 @@ export class PushNotificationController {
         });
       }
 
-      const result = webPushService.saveSubscription(userId, subscription, userAgent);
+      const result = await webPushService.saveSubscription(userId, subscription, userAgent);
       res.status(200).json({
         success: true,
         message: 'Dispositivo suscrito a notificaciones Web Push exitosamente.',
@@ -52,7 +52,7 @@ export class PushNotificationController {
         });
       }
 
-      webPushService.deleteSubscription(endpoint);
+      await webPushService.deleteSubscription(endpoint);
       res.status(200).json({
         success: true,
         message: 'Suscripción Web Push cancelada exitosamente.'
@@ -78,7 +78,7 @@ export class PushNotificationController {
       const pushResult = await webPushService.sendNotificationToUser(userId, payload);
 
       // También registramos una alerta en la bandeja in-app
-      const inAppNotif = notificationService.createNotification({
+      const inAppNotif = await notificationService.createNotification({
         userId,
         tipo: 'SISTEMA',
         titulo: 'Notificación de Prueba Activada',
@@ -112,7 +112,7 @@ export class PushNotificationController {
         req.socket.setTimeout(0);
       }
 
-      const unreadCount = notificationService.getUnreadCount(req.user.id, { user: req.user }) || 0;
+      const unreadCount = (await notificationService.getUnreadCount(req.user.id, { user: req.user })) || 0;
       res.write(`event: connected\ndata: ${JSON.stringify({ unreadCount, ts: Date.now() })}\n\n`);
 
       const unregister = notificationService.registerSseClient(req.user, res);
@@ -150,8 +150,8 @@ export class PushNotificationController {
       let unreadCount = 0;
 
       try {
-        notifications = notificationService.getUserNotifications(userId, { limit, unreadOnly, user: req.user }) || [];
-        unreadCount = notificationService.getUnreadCount(userId, { user: req.user }) || 0;
+        notifications = (await notificationService.getUserNotifications(userId, { limit, unreadOnly, user: req.user })) || [];
+        unreadCount = (await notificationService.getUnreadCount(userId, { user: req.user })) || 0;
       } catch (dbErr) {
         console.error('[PushNotificationController.getNotifications] Error en consulta de base de datos:', dbErr);
       }
@@ -173,7 +173,7 @@ export class PushNotificationController {
     try {
       let unreadCount = 0;
       try {
-        unreadCount = notificationService.getUnreadCount(req.user.id, { user: req.user }) || 0;
+        unreadCount = (await notificationService.getUnreadCount(req.user.id, { user: req.user })) || 0;
       } catch (dbErr) {
         console.error('[PushNotificationController.getUnreadCount] Error en consulta:', dbErr);
       }
@@ -191,7 +191,7 @@ export class PushNotificationController {
   static async markAsRead(req, res, next) {
     try {
       const { id } = req.params;
-      const result = notificationService.markAsRead(id, req.user.id);
+      const result = await notificationService.markAsRead(id, req.user.id);
       res.status(200).json({
         success: true,
         message: 'Notificación marcada como leída.',
@@ -205,7 +205,7 @@ export class PushNotificationController {
   // 8. Marcar todas como leídas
   static async markAllAsRead(req, res, next) {
     try {
-      const result = notificationService.markAllAsRead(req.user.id);
+      const result = await notificationService.markAllAsRead(req.user.id);
       res.status(200).json({
         success: true,
         message: 'Todas las notificaciones fueron marcadas como leídas.',
@@ -220,7 +220,7 @@ export class PushNotificationController {
   static async deleteNotification(req, res, next) {
     try {
       const { id } = req.params;
-      const result = notificationService.deleteNotification(id, req.user.id);
+      const result = await notificationService.deleteNotification(id, req.user.id);
       res.status(200).json({
         success: true,
         message: 'Notificación eliminada.',
@@ -235,9 +235,9 @@ export class PushNotificationController {
   static async clearNotifications(req, res, next) {
     try {
       const { all } = req.query;
-      const result = all === 'true' 
-        ? notificationService.clearAllNotifications(req.user.id)
-        : notificationService.clearReadNotifications(req.user.id);
+      const result = all === 'true'
+        ? await notificationService.clearAllNotifications(req.user.id)
+        : await notificationService.clearReadNotifications(req.user.id);
       res.status(200).json({
         success: true,
         message: all === 'true' ? 'Bandeja de notificaciones vaciada.' : 'Notificaciones leídas eliminadas.',

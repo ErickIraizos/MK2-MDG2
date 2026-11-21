@@ -137,8 +137,9 @@ export function createSafeFileFilter(allowedMimes, allowedExts = null, customMes
 }
 
 /**
- * Middleware posterior a Multer: verifica los magic bytes del archivo recién guardado en disco.
- * Si no coincide la firma binaria real, elimina el archivo y responde HTTP 400.
+ * Middleware posterior a Multer: verifica los magic bytes del archivo subido
+ * (directamente desde req.file.buffer con memoryStorage, o desde disco como fallback).
+ * Si no coincide la firma binaria real, responde HTTP 400.
  */
 export function verifyUploadedFileMiddleware(allowedMimes, allowedExts = null) {
   const validExts = allowedExts || allowedMimes.flatMap(m => MIME_EXT_MAP[m] || []);
@@ -149,6 +150,7 @@ export function verifyUploadedFileMiddleware(allowedMimes, allowedExts = null) {
     const ext = path.extname(req.file.originalname || '').toLowerCase();
     const mimetype = req.file.mimetype;
     const filePath = req.file.path;
+    const fileBuffer = req.file.buffer;
 
     const removeTempFile = () => {
       try {
@@ -169,7 +171,17 @@ export function verifyUploadedFileMiddleware(allowedMimes, allowedExts = null) {
       return next(AppError.badRequest('La extensión del archivo no coincide con su tipo MIME.', 'INVALID_FILE_SIGNATURE'));
     }
 
-    if (!verifyFileMagicBytes(filePath, mimetype)) {
+    let signatureOk = false;
+    if (Buffer.isBuffer(fileBuffer)) {
+      const sample = mimetype === 'image/svg+xml'
+        ? fileBuffer.subarray(0, Math.min(fileBuffer.length, 65536))
+        : fileBuffer.subarray(0, Math.min(fileBuffer.length, 64));
+      signatureOk = fileBuffer.length > 0 && matchesBufferSignature(sample, mimetype);
+    } else if (filePath) {
+      signatureOk = verifyFileMagicBytes(filePath, mimetype);
+    }
+
+    if (!signatureOk) {
       removeTempFile();
       return next(
         AppError.badRequest(
@@ -184,9 +196,9 @@ export function verifyUploadedFileMiddleware(allowedMimes, allowedExts = null) {
 }
 
 /**
- * Valida una imagen enviada en formato Data URI Base64 (ej. comprobante_base64).
+ * Decodifica y valida una imagen enviada en formato Data URI Base64 (ej. comprobante_base64).
  */
-export function validateBase64Image(dataUri, maxBytes = 10 * 1024 * 1024) {
+export function parseBase64Image(dataUri, maxBytes = 4 * 1024 * 1024) {
   if (typeof dataUri !== 'string') {
     throw AppError.badRequest('Formato de comprobante base64 inválido.', 'INVALID_FILE_TYPE');
   }
@@ -196,14 +208,21 @@ export function validateBase64Image(dataUri, maxBytes = 10 * 1024 * 1024) {
   }
 
   const normalizedMime = match[1] === 'image/jpg' ? 'image/jpeg' : match[1];
-  const buf = Buffer.from(match[2], 'base64');
-  if (!buf || buf.length === 0 || buf.length > maxBytes) {
+  const buffer = Buffer.from(match[2], 'base64');
+  if (!buffer || buffer.length === 0 || buffer.length > maxBytes) {
     throw AppError.badRequest('La imagen adjunta supera el tamaño máximo permitido o está vacía.', 'INVALID_FILE_SIZE');
   }
 
-  if (!matchesBufferSignature(buf, normalizedMime)) {
+  if (!matchesBufferSignature(buffer, normalizedMime)) {
     throw AppError.badRequest('El contenido binario de la imagen no es válido.', 'INVALID_FILE_SIGNATURE');
   }
 
-  return normalizedMime;
+  return { mimetype: normalizedMime, buffer };
+}
+
+/**
+ * Valida una imagen enviada en formato Data URI Base64 (ej. comprobante_base64).
+ */
+export function validateBase64Image(dataUri, maxBytes = 4 * 1024 * 1024) {
+  return parseBase64Image(dataUri, maxBytes).mimetype;
 }

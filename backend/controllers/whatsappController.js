@@ -183,7 +183,7 @@ export class WhatsAppController {
           anticipacionMinutos: 0,
           mensajePersonalizado: message
         });
-        repo.updateReminderStatus(rem.id, 'ENVIADO', { enviadoAt: new Date().toISOString() });
+        await repo.updateReminderStatus(rem.id, 'ENVIADO', { enviadoAt: new Date().toISOString() });
       } catch (e) {}
 
       // 2. Despachar alerta Web Push PWA al Tutor (si tiene usuario)
@@ -208,7 +208,7 @@ export class WhatsAppController {
 
         // 3. Notificación In-App en la campanita para el Tutor
         try {
-          notificationService.createNotification({
+          await notificationService.createNotification({
             userId: cita.tutor_usuario_id,
             tipo: 'RECORDATORIO',
             titulo: pwaTitle,

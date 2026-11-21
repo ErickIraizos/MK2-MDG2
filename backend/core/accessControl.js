@@ -1,5 +1,4 @@
 import { AppError } from './AppError.js';
-import { DatabaseConnection } from './DatabaseConnection.js';
 import { RepositoryFactory } from './RepositoryFactory.js';
 
 /**
@@ -61,12 +60,8 @@ export async function assertPatientAccess(
       throw AppError.forbidden('Perfil de especialista no encontrado.');
     }
 
-    const db = DatabaseConnection.getInstance();
-    const patient = db.prepare(`
-      SELECT id, terapeuta_id, creado_por_usuario_id
-      FROM pacientes
-      WHERE id = ?
-    `).get(targetId);
+    const patientRepo = RepositoryFactory.getPatientRepository();
+    const patient = await patientRepo.getPatientAccessSnapshot(targetId);
 
     if (!patient) {
       throw AppError.notFound(`No se encontró el paciente con ID ${targetId}.`);
@@ -74,13 +69,7 @@ export async function assertPatientAccess(
 
     const isAssigned = Number(patient.terapeuta_id) === Number(therapist.id);
     const isCreator = Number(patient.creado_por_usuario_id) === Number(currentUser.id);
-    const hasDerivation = Boolean(db.prepare(`
-      SELECT 1 FROM derivaciones_pacientes
-      WHERE paciente_id = ?
-        AND estado = 'ACTIVA'
-        AND (terapeuta_destino_id = ? OR terapeuta_origen_id = ?)
-      LIMIT 1
-    `).get(targetId, therapist.id, therapist.id));
+    const hasDerivation = await patientRepo.hasActiveDerivation(targetId, therapist.id);
 
     if (!isAssigned && !isCreator && !hasDerivation) {
       throw AppError.forbidden(
@@ -96,12 +85,8 @@ export async function assertPatientAccess(
       throw AppError.forbidden(`Acceso restringido: No existe un perfil de tutor vinculado para ${actionDescription}.`);
     }
 
-    const db = DatabaseConnection.getInstance();
-    const hasLink = Boolean(db.prepare(`
-      SELECT 1 FROM paciente_tutor
-      WHERE paciente_id = ? AND tutor_id = ?
-      LIMIT 1
-    `).get(targetId, tutor.id));
+    const patientRepo = RepositoryFactory.getPatientRepository();
+    const hasLink = await patientRepo.hasTutorLink(targetId, tutor.id);
 
     if (!hasLink) {
       throw AppError.forbidden(

@@ -1,14 +1,7 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { RepositoryFactory } from '../core/RepositoryFactory.js';
-import { DatabaseConnection } from '../core/DatabaseConnection.js';
 import { AppError } from '../core/AppError.js';
 import { getBoliviaTodayDateString } from '../utils/dateTime.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const UPLOADS_DIR = path.resolve(__dirname, '..', 'uploads', 'patient_documents');
+import { storageService, PRIVATE_BUCKET, extractStorageKey } from './storageService.js';
 
 export class ClinicalRecordService {
   constructor() {
@@ -16,7 +9,7 @@ export class ClinicalRecordService {
     this.patientRepo = RepositoryFactory.getPatientRepository();
     this.therapistRepo = RepositoryFactory.getTherapistRepository();
     this.configRepo = RepositoryFactory.getConfigRepository();
-    this.db = DatabaseConnection.getInstance();
+    this.userRepo = RepositoryFactory.getUserRepository();
   }
 
   /**
@@ -40,12 +33,7 @@ export class ClinicalRecordService {
 
     if (currentUser.rol === 'TUTOR' && allowTutor) {
       const pacienteId = historyOrPatient.paciente_id || historyOrPatient.id;
-      const relation = this.db.prepare(`
-        SELECT pt.id 
-        FROM paciente_tutor pt
-        JOIN tutores t ON pt.tutor_id = t.id
-        WHERE pt.paciente_id = ? AND t.usuario_id = ?
-      `).get(pacienteId, currentUser.id);
+      const relation = await this.recordRepo.checkTutorPatientRelation(pacienteId, currentUser.id);
 
       if (!relation) {
         throw AppError.forbidden(
@@ -156,8 +144,7 @@ export class ClinicalRecordService {
 
     // Sincronizar estado en la ficha del paciente
     if (updated.paciente_id) {
-      this.db.prepare(`UPDATE pacientes SET estado_clinico = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
-        .run(estado, updated.paciente_id);
+      await this.recordRepo.syncPatientClinicalState(updated.paciente_id, estado);
     }
 
     this._audit(currentUser.id, 'CAMBIO_ESTADO_HISTORIA', 'MODULO_E', {
@@ -513,14 +500,14 @@ Por favor, estructura estos apuntes en formato formal SOAP manteniendo total ver
       }
     }
 
-    const filePath = path.join(UPLOADS_DIR, document.nombre_almacenado);
-    if (!fs.existsSync(filePath)) {
-      throw AppError.notFound('El archivo físico no se encuentra en el servidor.');
+    const objectKey = extractStorageKey(document.nombre_almacenado, 'patient_documents', PRIVATE_BUCKET);
+    if (!objectKey) {
+      throw AppError.notFound('El archivo físico no se encuentra configurado.');
     }
 
     return {
       document,
-      filePath
+      objectKey
     };
   }
 
@@ -528,7 +515,7 @@ Por favor, estructura estos apuntes en formato formal SOAP manteniendo total ver
    * Carga y registra un documento o estudio externo adjunto (Laboratorios, EEG, informes escolares).
    */
   async uploadPatientDocument(pacienteId, file, data, currentUser) {
-    if (!file) {
+    if (!file || !file.buffer) {
       throw AppError.badRequest('Debe adjuntar un archivo válido (PDF o Imagen).');
     }
 
@@ -539,33 +526,31 @@ Por favor, estructura estos apuntes en formato formal SOAP manteniendo total ver
 
     const allowedMimes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
     if (!allowedMimes.includes(file.mimetype)) {
-      // Eliminar archivo temporal si no es válido
-      if (file.path && fs.existsSync(file.path)) fs.unlinkSync(file.path);
       throw AppError.badRequest('Formato no permitido. Solo se aceptan archivos PDF o imágenes (JPEG, PNG).');
     }
 
     const carpetaId = Number(data.carpetaId);
     if (!carpetaId) {
-      if (file.path && fs.existsSync(file.path)) fs.unlinkSync(file.path);
       throw AppError.badRequest('Debe seleccionar la carpeta de destino para el archivo.');
     }
 
     const targetFolder = await this.recordRepo.getFolderById(carpetaId);
     if (!targetFolder || targetFolder.paciente_id !== Number(pacienteId) || targetFolder.activo === 0) {
-      if (file.path && fs.existsSync(file.path)) fs.unlinkSync(file.path);
       throw AppError.badRequest('La carpeta de destino no existe o se encuentra inactiva.');
     }
 
     if (currentUser.rol === 'TERAPEUTA' && targetFolder.es_sistema === 0 && targetFolder.creado_por_usuario_id && targetFolder.creado_por_usuario_id !== currentUser.id) {
-      if (file.path && fs.existsSync(file.path)) fs.unlinkSync(file.path);
       throw AppError.forbidden('Acceso restringido: Solo el especialista que creó esta carpeta privada o la Dirección Médica pueden custodiar archivos en ella.');
     }
+
+    const objectKey = `patient_documents/${storageService.buildSafeFilename('doc', file.originalname || 'documento_clinico.pdf')}`;
+    await storageService.uploadPrivate(objectKey, file.buffer, file.mimetype);
 
     const createdDoc = await this.recordRepo.createDocument({
       carpetaId,
       pacienteId,
       nombreOriginal: file.originalname || 'documento_clinico.pdf',
-      nombreAlmacenado: file.filename,
+      nombreAlmacenado: objectKey,
       tipoMime: file.mimetype,
       tamanoBytes: file.size,
       categoriaClinica: data.categoriaClinica || 'LABORATORIO_ESTUDIO',
@@ -663,43 +648,18 @@ Por favor, estructura estos apuntes en formato formal SOAP manteniendo total ver
       throw AppError.forbidden('Solo los tutores legales pueden acceder a su resumen de planes familiares.');
     }
 
-    const tutor = this.db.prepare('SELECT id, nombres, apellidos FROM tutores WHERE usuario_id = ?').get(currentUser.id);
+    const tutor = await this.recordRepo.getTutorIdByUserId(currentUser.id);
     if (!tutor) {
       return [];
     }
 
-    const children = this.db.prepare(`
-      SELECT 
-        p.id AS paciente_id,
-        p.nombres,
-        p.apellidos,
-        p.codigo_expediente,
-        p.fecha_nacimiento,
-        p.ci,
-        pt.parentesco,
-        hc.id AS historia_id
-      FROM pacientes p
-      JOIN paciente_tutor pt ON p.id = pt.paciente_id
-      LEFT JOIN historias_clinicas hc ON p.id = hc.paciente_id
-      WHERE pt.tutor_id = ? AND p.activo = 1
-      ORDER BY p.nombres ASC
-    `).all(tutor.id);
+    const children = await this.recordRepo.getChildrenForTutor(tutor.id);
 
     const familyPlans = [];
 
     for (const child of children) {
       // Especialista asignado al hijo/a
-      const childTherapist = this.db.prepare(`
-        SELECT t.id, t.nombres, t.apellidos, t.color_agenda, t.turnos_atencion, t.bio,
-               t.registro_profesional,
-               esp.nombre AS especialidad_nombre,
-               amb.codigo AS ambiente_codigo, amb.nombre AS ambiente_nombre
-        FROM pacientes p
-        LEFT JOIN terapeutas t ON p.terapeuta_id = t.id
-        LEFT JOIN especialidades esp ON t.especialidad_id = esp.id
-        LEFT JOIN ambientes amb ON t.ambiente_preferido_id = amb.id
-        WHERE p.id = ?
-      `).get(child.paciente_id);
+      const childTherapist = await this.recordRepo.getAssignedTherapistForPatient(child.paciente_id);
 
       let plans = [];
       if (child.historia_id) {
@@ -710,19 +670,7 @@ Por favor, estructura estos apuntes en formato formal SOAP manteniendo total ver
       for (const p of plans) {
         if (p.metas && Array.isArray(p.metas)) {
           for (const m of p.metas) {
-            const recentCheckin = this.db.prepare(`
-              SELECT nivel_respuesta, observacion_hogar, fecha_registro, created_at
-              FROM tutor_seguimiento_hogar
-              WHERE meta_id = ?
-              ORDER BY created_at DESC
-              LIMIT 1
-            `).get(m.id);
-
-            const totalMes = this.db.prepare(`
-              SELECT COUNT(*) AS count
-              FROM tutor_seguimiento_hogar
-              WHERE meta_id = ? AND strftime('%Y-%m', fecha_registro) = strftime('%Y-%m', 'now')
-            `).get(m.id)?.count || 0;
+            const { recentCheckin, totalMes } = await this.recordRepo.getRecentHomeCheckinAndMonthCount(m.id);
 
             m.ultimo_checkin = recentCheckin || null;
             m.total_practicas_mes = totalMes;
@@ -755,13 +703,11 @@ Por favor, estructura estos apuntes en formato formal SOAP manteniendo total ver
       throw AppError.forbidden('Solo los tutores legales pueden registrar prácticas en el hogar.');
     }
 
-    const tutor = this.db.prepare('SELECT id FROM tutores WHERE usuario_id = ?').get(currentUser.id);
+    const tutor = await this.recordRepo.getTutorIdByUserId(currentUser.id);
     if (!tutor) throw AppError.forbidden('Perfil de tutor legal no encontrado.');
 
     // Validar vinculación tutor-paciente
-    const relation = this.db.prepare(`
-      SELECT id FROM paciente_tutor WHERE tutor_id = ? AND paciente_id = ?
-    `).get(tutor.id, pacienteId);
+    const relation = await this.recordRepo.checkTutorPatientRelation(pacienteId, currentUser.id);
 
     if (!relation) {
       throw AppError.forbidden('No tiene autorización sobre este expediente familiar.');
@@ -779,7 +725,7 @@ Por favor, estructura estos apuntes en formato formal SOAP manteniendo total ver
       observacionHogar
     });
 
-    this._audit(currentUser.id, 'CHECKIN_FAMILIAR_REGISTRADO', 'PORTAL_FAMILIAR', {
+    await this._audit(currentUser.id, 'CHECKIN_FAMILIAR_REGISTRADO', 'PORTAL_FAMILIAR', {
       meta_id: metaId,
       paciente_id: pacienteId,
       nivel: nivelRespuesta
@@ -797,9 +743,7 @@ Por favor, estructura estos apuntes en formato formal SOAP manteniendo total ver
    */
   async getHomePracticeHistory(pacienteId, currentUser, metaId = null) {
     if (currentUser.rol === 'TUTOR') {
-      const tutor = this.db.prepare('SELECT id FROM tutores WHERE usuario_id = ?').get(currentUser.id);
-      if (!tutor) throw AppError.forbidden('Perfil de tutor no encontrado.');
-      const rel = this.db.prepare('SELECT id FROM paciente_tutor WHERE tutor_id = ? AND paciente_id = ?').get(tutor.id, pacienteId);
+      const rel = await this.recordRepo.checkTutorPatientRelation(pacienteId, currentUser.id);
       if (!rel) throw AppError.forbidden('No tiene acceso a los registros de este paciente.');
     } else {
       const patient = await this.patientRepo.findById(pacienteId);
@@ -947,7 +891,7 @@ Por favor, estructura estos apuntes en formato formal SOAP manteniendo total ver
       throw AppError.badRequest('El porcentaje de logro debe ser uno de los valores clínicos: 0, 25, 50, 75 o 100.');
     }
 
-    const meta = this.db.prepare(`SELECT * FROM metas_terapeuticas WHERE id = ?`).get(metaId);
+    const meta = await this.recordRepo.getSmartGoalRawById(metaId);
     if (!meta) throw AppError.notFound(`Meta SMART [${metaId}] no encontrada.`);
 
     const plan = await this.recordRepo.getInterventionPlanById(meta.plan_id);
@@ -1004,34 +948,9 @@ Por favor, estructura estos apuntes en formato formal SOAP manteniendo total ver
     return s;
   }
 
-  _audit(usuarioId, accion, modulo, detalles = {}) {
+  async _audit(usuarioId, accion, modulo, detalles = {}) {
     try {
-      const user = this.db.prepare(`
-        SELECT u.nombre_completo, u.email, r.nombre AS rol_nombre 
-        FROM usuarios u 
-        JOIN roles r ON u.rol_id = r.id 
-        WHERE u.id = ?
-      `).get(usuarioId);
-
-      this.db.prepare(`
-        INSERT INTO bitacora_auditoria (
-          usuario_id,
-          usuario_nombre_snapshot,
-          usuario_email_snapshot,
-          rol_nombre_snapshot,
-          accion,
-          modulo,
-          detalles
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        usuarioId,
-        user?.nombre_completo || 'Usuario',
-        user?.email || null,
-        user?.rol_nombre || null,
-        accion,
-        modulo,
-        typeof detalles === 'string' ? detalles : JSON.stringify(detalles)
-      );
+      await this.userRepo.logAudit(usuarioId, accion, modulo, detalles, null);
     } catch (e) {
       console.warn('[Audit] Error registrando bitácora:', e.message);
     }

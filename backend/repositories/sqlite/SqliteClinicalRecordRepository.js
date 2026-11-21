@@ -1021,5 +1021,78 @@ export class SqliteClinicalRecordRepository extends IClinicalRecordRepository {
     `);
     return stmt.all(metaId);
   }
+
+  async syncPatientClinicalState(pacienteId, estado) {
+    this.db.prepare(`UPDATE pacientes SET estado_clinico = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+      .run(estado, pacienteId);
+  }
+
+  async checkTutorPatientRelation(pacienteId, usuarioId) {
+    return this.db.prepare(`
+      SELECT pt.id
+      FROM paciente_tutor pt
+      JOIN tutores t ON pt.tutor_id = t.id
+      WHERE pt.paciente_id = ? AND t.usuario_id = ?
+    `).get(pacienteId, usuarioId) || null;
+  }
+
+  async getTutorIdByUserId(usuarioId) {
+    return this.db.prepare('SELECT id, nombres, apellidos FROM tutores WHERE usuario_id = ?').get(usuarioId) || null;
+  }
+
+  async getChildrenForTutor(tutorId) {
+    return this.db.prepare(`
+      SELECT
+        p.id AS paciente_id,
+        p.nombres,
+        p.apellidos,
+        p.codigo_expediente,
+        p.fecha_nacimiento,
+        p.ci,
+        pt.parentesco,
+        hc.id AS historia_id
+      FROM pacientes p
+      JOIN paciente_tutor pt ON p.id = pt.paciente_id
+      LEFT JOIN historias_clinicas hc ON p.id = hc.paciente_id
+      WHERE pt.tutor_id = ? AND p.activo = 1
+      ORDER BY p.nombres ASC
+    `).all(tutorId);
+  }
+
+  async getAssignedTherapistForPatient(pacienteId) {
+    return this.db.prepare(`
+      SELECT t.id, t.nombres, t.apellidos, t.color_agenda, t.turnos_atencion, t.bio,
+             t.registro_profesional,
+             esp.nombre AS especialidad_nombre,
+             amb.codigo AS ambiente_codigo, amb.nombre AS ambiente_nombre
+      FROM pacientes p
+      LEFT JOIN terapeutas t ON p.terapeuta_id = t.id
+      LEFT JOIN especialidades esp ON t.especialidad_id = esp.id
+      LEFT JOIN ambientes amb ON t.ambiente_preferido_id = amb.id
+      WHERE p.id = ?
+    `).get(pacienteId) || null;
+  }
+
+  async getRecentHomeCheckinAndMonthCount(metaId) {
+    const recentCheckin = this.db.prepare(`
+      SELECT nivel_respuesta, observacion_hogar, fecha_registro, created_at
+      FROM tutor_seguimiento_hogar
+      WHERE meta_id = ?
+      ORDER BY created_at DESC
+      LIMIT 1
+    `).get(metaId) || null;
+
+    const totalMes = this.db.prepare(`
+      SELECT COUNT(*) AS count
+      FROM tutor_seguimiento_hogar
+      WHERE meta_id = ? AND strftime('%Y-%m', fecha_registro) = strftime('%Y-%m', 'now')
+    `).get(metaId)?.count || 0;
+
+    return { recentCheckin, totalMes };
+  }
+
+  async getSmartGoalRawById(metaId) {
+    return this.db.prepare(`SELECT * FROM metas_terapeuticas WHERE id = ?`).get(metaId) || null;
+  }
 }
 

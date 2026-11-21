@@ -1317,7 +1317,7 @@ export class ProfileView {
                   Haga clic aquí para seleccionar imagen o escaneo de su firma
                 </div>
                 <div style="font-size: 0.74rem; color: var(--soft-text-muted); margin-top: 0.25rem;">
-                  Formatos permitidos: PNG o JPG, tamaño máximo 5 MB
+                  Formatos permitidos: PNG o JPG, tamaño máximo 4 MB
                 </div>
               </div>
 
@@ -1417,8 +1417,8 @@ export class ProfileView {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        if (file.size > 5 * 1024 * 1024) {
-          Toast.error('El archivo de imagen no debe superar 5 MB.');
+        if (file.size > 4 * 1024 * 1024) {
+          Toast.error('El archivo de imagen no debe superar 4 MB.');
           return;
         }
 
