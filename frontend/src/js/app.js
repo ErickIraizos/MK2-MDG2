@@ -351,6 +351,10 @@ class App {
       if (installBtn) {
         installBtn.style.display = 'none';
       }
+      const homeInstallCard = document.getElementById('home-mobile-install-card');
+      if (homeInstallCard) {
+        homeInstallCard.style.setProperty('display', 'none', 'important');
+      }
       console.log('[PWA] Aplicación PSI Aprende instalada con éxito.');
     });
   }

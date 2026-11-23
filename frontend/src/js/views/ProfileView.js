@@ -985,7 +985,9 @@ export class ProfileView {
                     </button>
                   </div>
                 </form>
-              </div>          </div>
+              </div>
+            </div>
+          </div>
         `;
       }
 
@@ -1250,7 +1252,7 @@ export class ProfileView {
         <div class="soft-modal-card" style="max-width: 640px; width: 100%; max-height: 90vh; display: flex; flex-direction: column;">
           
           <!-- CABECERA MODAL (NIVEL 2) -->
-          <div style="padding: 1.2rem 1.65rem; border-bottom: 1px solid var(--soft-divider); display: flex; justify-content: space-between; align-items: center; background: var(--soft-lavender-surface); gap: 1rem;">
+          <div style="padding: 1.2rem 1.65rem; border-bottom: 1px solid var(--soft-divider); display: flex; justify-content: space-between; align-items: center; background: var(--soft-lavender-surface); gap: 1rem; flex-shrink: 0;">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
               <div class="soft-icon-box soft-icon-box-sm soft-icon-box-mint">
                 ${Icons.signature(20, 'var(--soft-mint-deep)')}
@@ -1270,7 +1272,7 @@ export class ProfileView {
           </div>
 
           <!-- PESTAÑAS DE MODALIDAD (TRAZAR VS SUBIR ARCHIVO) -->
-          <div style="padding: 0.75rem 1.65rem 0 1.65rem; background: var(--soft-lavender-surface); border-bottom: 1px solid var(--soft-divider); display: flex; gap: 0.6rem;">
+          <div style="padding: 0.75rem 1.65rem 0 1.65rem; background: var(--soft-lavender-surface); border-bottom: 1px solid var(--soft-divider); display: flex; gap: 0.6rem; flex-shrink: 0; overflow-y: visible !important;">
             <button type="button" id="tab-modal-sig-draw" class="soft-btn soft-btn-sm soft-btn-lvl-1" style="border-radius: 10px 10px 0 0;">
               ${Icons.signature(13, '#FFFFFF')}
               <span>Trazar en Pantalla</span>
@@ -1330,7 +1332,7 @@ export class ProfileView {
           </div>
 
           <!-- PIE DE MODAL (NIVEL 2) -->
-          <div style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid var(--soft-divider); padding: 1.1rem 1.65rem; background: var(--soft-lavender-surface);">
+          <div style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid var(--soft-divider); padding: 1.1rem 1.65rem; background: var(--soft-lavender-surface); flex-shrink: 0;">
             <button type="button" id="btn-cancel-signature-modal" class="soft-btn soft-btn-lvl-2-soft">
               Cancelar
             </button>

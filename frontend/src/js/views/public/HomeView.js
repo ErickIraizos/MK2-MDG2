@@ -1,5 +1,6 @@
 import { apiClient } from '../../api/apiClient.js';
 import { Icons } from '../../components/Icons.js';
+import { Toast } from '../../components/Toast.js';
 
 export class HomeView {
   constructor(container) {
@@ -27,6 +28,7 @@ export class HomeView {
     }
 
     document.body.classList.add('home-bg-active');
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
     this.container.innerHTML = `
       <div class="page-container panel-general" style="max-width: 1240px; margin: 0 auto; padding-bottom: 3.5rem;">
@@ -341,8 +343,65 @@ export class HomeView {
           </div>
         </div>
 
+        ${!isStandalone ? `
+          <!-- TARJETA DE DESCARGA / INSTALACIÓN PWA (SOLO PANTALLA CELULAR) -->
+          <div id="home-mobile-install-card" class="home-mobile-install-card soft-quick-card soft-quick-card-lavender">
+            <div style="display: flex; align-items: center; gap: 1rem; flex: 1 1 240px; min-width: 0;">
+              <div class="soft-icon-box soft-icon-box-lg soft-icon-box-lavender" style="width: 48px; height: 48px; border-radius: 15px; flex-shrink: 0;">
+                ${Icons.download(22, 'var(--soft-purple-primary)')}
+              </div>
+              <div style="min-width: 0;">
+                <div class="soft-kpi-overline" style="color: var(--soft-purple-primary); font-size: 0.72rem;">
+                  APLICACIÓN MÓVIL PWA
+                </div>
+                <h3 style="font-size: 1.04rem; font-weight: 800; color: var(--soft-text-title); margin: 0.1rem 0 0.25rem 0; line-height: 1.3;">
+                  Descarga PSI Aprende en tu celular
+                </h3>
+                <p style="font-size: 0.8rem; color: var(--soft-text-body); margin: 0; line-height: 1.42;">
+                  Acceso rápido desde tu pantalla de inicio sin usar el navegador.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              id="btn-install-pwa-home"
+              class="soft-btn soft-btn-lvl-1"
+              style="width: 100%; padding: 0.78rem 1.25rem; font-size: 0.88rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;"
+            >
+              ${Icons.download(17, '#FFFFFF')}
+              <span>Descargar e Instalar App</span>
+            </button>
+          </div>
+        ` : ''}
+
       </div>
     `;
+
+    const homeInstallBtn = document.getElementById('btn-install-pwa-home');
+    if (homeInstallBtn) {
+      homeInstallBtn.addEventListener('click', async () => {
+        if (window.deferredPrompt) {
+          window.deferredPrompt.prompt();
+          const choice = await window.deferredPrompt.userChoice;
+          if (choice && choice.outcome === 'accepted') {
+            Toast.success('Aplicación PSI Aprende instalada con éxito.');
+            const card = document.getElementById('home-mobile-install-card');
+            if (card) card.style.setProperty('display', 'none', 'important');
+            const navBtn = document.getElementById('btn-install-pwa');
+            if (navBtn) navBtn.style.display = 'none';
+          }
+          window.deferredPrompt = null;
+        } else {
+          const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+          if (isIos) {
+            Toast.info('En iPhone o iPad: toque el botón Compartir de Safari y seleccione "Agregar a pantalla de inicio".');
+          } else {
+            Toast.info('Para instalar en su celular: abra el menú de su navegador (tres puntos) y seleccione "Instalar aplicación" o "Agregar a la pantalla principal".');
+          }
+        }
+      });
+    }
   }
 
   unmount() {

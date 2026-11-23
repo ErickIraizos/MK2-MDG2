@@ -293,6 +293,25 @@
   transform: translateY(0) scale(0.98);
 }
 
+/* Tarjeta inferior de descarga PWA en Inicio: visible únicamente en pantallas de celular */
+.home-mobile-install-card {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .home-mobile-install-card {
+    display: flex !important;
+    margin-top: 1.25rem;
+    padding: 1.35rem 1.25rem;
+    border-radius: 20px;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    cursor: default;
+  }
+}
+
 .btn-logout {
   display: inline-flex;
   align-items: center;
