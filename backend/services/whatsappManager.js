@@ -40,6 +40,7 @@ class WhatsAppManager {
         clientId: `session_${id}`,
         dataPath: AUTH_DIR
       }),
+      authTimeoutMs: 40000,
       webVersionCache: {
         type: 'remote',
         remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/{version}.html',
