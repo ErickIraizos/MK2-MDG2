@@ -1110,19 +1110,38 @@ export class WhatsAppSessionsView {
         this.closeQrModal();
         await this.loadSessions();
         return;
+      } else if (res.data && (res.data.error_en_vivo || res.data.status === 'DESCONECTADO')) {
+        this.renderQrError(
+          res.data.error_en_vivo || 'La sesión quedó desconectada antes de generar el código QR.'
+        );
+        return;
       }
 
       this.startQrPolling(therapistId);
     } catch (err) {
       console.error(err);
-      if (container) {
-        container.innerHTML = `
-          <div style="color: #ef4444; font-size: 0.88rem; padding: 1.5rem;">
-            No se pudo generar el código QR: ${err.message || 'Error de conexión'}
-          </div>
-        `;
-      }
+      this.renderQrError(err.message || 'Error de conexión');
     }
+  }
+
+  renderQrError(message) {
+    this.stopQrPolling();
+    this.currentQrDataUrl = null;
+    const container = document.getElementById('qr-display-container');
+    if (!container) return;
+
+    const escaped = String(message || 'Error desconocido al inicializar WhatsApp Web')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+    container.innerHTML = `
+      <div style="color: #ef4444; font-size: 0.88rem; padding: 1.5rem;">
+        No se pudo generar el código QR: ${escaped}
+      </div>
+    `;
   }
 
   renderQrCode(dataUrl) {
@@ -1174,6 +1193,12 @@ export class WhatsAppSessionsView {
       } else if (data.qr_data_url) {
         this.renderQrCode(data.qr_data_url);
         if (!silent) Toast.info('Código QR actualizado.');
+      } else if (data.error_en_vivo || data.estado_en_vivo === 'DESCONECTADO') {
+        const errorMsg =
+          data.error_en_vivo ||
+          'La conexión con WhatsApp Web se detuvo o expiró el tiempo de espera. Cierra esta ventana e intenta vincular nuevamente.';
+        this.renderQrError(errorMsg);
+        if (!silent) Toast.error(errorMsg);
       } else if (!silent) {
         Toast.info('Aún esperando escaneo del dispositivo móvil.');
       }

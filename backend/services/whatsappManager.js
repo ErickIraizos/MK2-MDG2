@@ -30,6 +30,41 @@ class WhatsAppManager {
     return RepositoryFactory.getWhatsappRepository();
   }
 
+  /**
+   * Construye la configuración unificada de Client (Puppeteer + webVersionCache remoto)
+   * compartida entre initializeSession y autoResumeSession.
+   */
+  _buildClientConfig(LocalAuth, id) {
+    return {
+      authStrategy: new LocalAuth({
+        clientId: `session_${id}`,
+        dataPath: AUTH_DIR
+      }),
+      webVersionCache: {
+        type: 'remote',
+        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/{version}.html',
+        strict: false
+      },
+      puppeteer: {
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--disable-gpu',
+          '--disable-features=IsolateOrigins,site-per-process',
+          '--disable-site-isolation-trials',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding'
+        ]
+      }
+    };
+  }
+
   cleanSessionLocks(id) {
     try {
       const sessionDir = path.resolve(AUTH_DIR, `session-session_${id}`);
@@ -43,6 +78,9 @@ class WhatsAppManager {
 
       const lockFiles = [
         path.join(sessionDir, 'lockfile'),
+        path.join(sessionDir, 'SingletonLock'),
+        path.join(sessionDir, 'SingletonCookie'),
+        path.join(sessionDir, 'SingletonSocket'),
         path.join(sessionDir, 'Default', 'SingletonLock'),
         path.join(sessionDir, 'Default', 'SingletonCookie'),
         path.join(sessionDir, 'Default', 'SingletonSocket')
@@ -50,7 +88,9 @@ class WhatsAppManager {
 
       for (const f of lockFiles) {
         try {
-          if (fs.existsSync(f)) fs.unlinkSync(f);
+          // Usar lstatSync para detectar symlinks rotos de Chromium (SingletonLock en Linux/EC2)
+          fs.lstatSync(f);
+          fs.unlinkSync(f);
         } catch (e) {}
       }
     } catch (err) {
@@ -166,8 +206,18 @@ class WhatsAppManager {
       };
     }
 
-    // Si ya hay un proceso inicializando y esperando QR, aguardar su promesa
-    if (existing && existing.status === 'INICIALIZANDO' && existing.qrPromise) {
+    const QR_INIT_TIMEOUT_MS = 45000; // 45s timeout
+
+    // Si ya hay un proceso inicializando activamente (< 15s y sin timeout/error previo), aguardar su promesa
+    if (
+      existing &&
+      existing.status === 'INICIALIZANDO' &&
+      existing.qrPromise &&
+      !existing.qrTimedOut &&
+      !existing.error &&
+      existing.client &&
+      (Date.now() - (existing.startedAt || 0) < 15000)
+    ) {
       const waitQr = await existing.qrPromise;
       if (waitQr && existing.qrDataUrl) {
         return {
@@ -179,12 +229,23 @@ class WhatsAppManager {
       }
     }
 
-    // Si había una sesión anterior no conectada o con error, cerrarla limpiamente
-    if (existing && existing.client) {
-      try {
-        await existing.client.destroy();
-      } catch (e) {}
+    // Si había una sesión anterior colgada, expirada, con error o sin conectar, cerrarla limpiamente
+    if (existing) {
+      console.log(`[WhatsAppManager] Reiniciando cliente previo para Usuario ID ${id} (estado=${existing.status}, timeout=${Boolean(existing.qrTimedOut)}, error=${existing.error || 'ninguno'})`);
+      if (existing.qrTimer) {
+        clearTimeout(existing.qrTimer);
+        existing.qrTimer = null;
+      }
+      if (existing.client) {
+        try {
+          await existing.client.destroy();
+        } catch (e) {}
+        existing.client = null;
+      }
     }
+
+    // Liberar locks/procesos antes de purgar la carpeta para evitar EBUSY / SingletonLock residual
+    this.cleanSessionLocks(id);
 
     // Purgar cualquier caché de perfil no autenticado previo para evitar que Puppeteer
     // intente restaurar sesiones rotas que provocan "Cannot read properties of null (reading 'Socket')"
@@ -202,9 +263,20 @@ class WhatsAppManager {
     await repo.setSessionStatus(id, 'INICIALIZANDO');
 
     let resolveQr = null;
+    let qrSettled = false;
+    let qrTimer = null;
+    const settleQr = (value) => {
+      if (qrSettled) return;
+      qrSettled = true;
+      if (qrTimer) {
+        clearTimeout(qrTimer);
+        qrTimer = null;
+      }
+      if (resolveQr) resolveQr(value);
+    };
+
     const qrPromise = new Promise((resolve) => {
       resolveQr = resolve;
-      setTimeout(() => resolve(null), 15000); // 15s timeout
     });
 
     const sessionState = {
@@ -214,10 +286,35 @@ class WhatsAppManager {
       status: 'INICIALIZANDO',
       phone: null,
       error: null,
+      qrTimedOut: false,
+      startedAt: Date.now(),
       lastMessageAt: null,
-      qrPromise
+      qrPromise,
+      qrTimer: null
     };
     this.sessions.set(id, sessionState);
+
+    qrTimer = setTimeout(async () => {
+      if (this.sessions.get(id) !== sessionState || qrSettled) return;
+      if (sessionState.status === 'INICIALIZANDO' && !sessionState.qrDataUrl) {
+        console.warn(`[WhatsAppManager] Timeout de ${QR_INIT_TIMEOUT_MS / 1000}s esperando QR para Usuario ID ${id}. Marcando como DESCONECTADO.`);
+        sessionState.qrTimedOut = true;
+        sessionState.status = 'DESCONECTADO';
+        sessionState.error = 'Tiempo de espera agotado (45s) esperando el código QR de WhatsApp Web. Intenta vincular nuevamente.';
+        const staleClient = sessionState.client;
+        sessionState.client = null;
+        repo.setSessionStatus(id, 'DESCONECTADO').catch(() => {});
+        settleQr(null);
+        if (staleClient) {
+          try {
+            await staleClient.destroy();
+          } catch (e) {}
+        }
+      } else {
+        settleQr(null);
+      }
+    }, QR_INIT_TIMEOUT_MS);
+    sessionState.qrTimer = qrTimer;
 
     try {
       // Importación compatible con CommonJS y ESM para whatsapp-web.js
@@ -234,35 +331,16 @@ class WhatsAppManager {
       this.cleanSessionLocks(id);
 
       // Instanciar cliente Puppeteer de forma protegida
-      const client = new Client({
-        authStrategy: new LocalAuth({
-          clientId: `session_${id}`,
-          dataPath: AUTH_DIR
-        }),
-        puppeteer: {
-          headless: true,
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--disable-gpu',
-            '--disable-features=IsolateOrigins,site-per-process',
-            '--disable-site-isolation-trials',
-            '--disable-background-timer-throttling',
-            '--disable-backgrounding-occluded-windows',
-            '--disable-renderer-backgrounding'
-          ]
-        }
-      });
+      const client = new Client(this._buildClientConfig(LocalAuth, id));
 
       sessionState.client = client;
 
       client.on('qr', async (qr) => {
+        if (this.sessions.get(id) !== sessionState) return;
         sessionState.qr = qr;
         sessionState.status = 'ESPERANDO_QR';
+        sessionState.error = null;
+        sessionState.qrTimedOut = false;
         try {
           // QR oficial de WhatsApp: contraste puro en blanco y negro para escaneo móvil veloz
           sessionState.qrDataUrl = await qrcode.toDataURL(qr, {
@@ -277,14 +355,16 @@ class WhatsAppManager {
         repo.setSessionStatus(id, 'ESPERANDO_QR').catch(() => {});
 
         console.log(`[WhatsAppManager] Código QR OFICIAL recibido de WhatsApp Web para Usuario ID ${id}`);
-        if (resolveQr) resolveQr(qr);
+        settleQr(qr);
       });
 
       client.on('ready', () => {
+        if (this.sessions.get(id) !== sessionState) return;
         sessionState.status = 'CONECTADO';
         sessionState.qr = null;
         sessionState.qrDataUrl = null;
         sessionState.error = null;
+        sessionState.qrTimedOut = false;
 
         const wid = client.info?.wid?.user || '';
         const phone = wid ? `+${wid}` : null;
@@ -293,6 +373,7 @@ class WhatsAppManager {
         repo.setSessionStatus(id, 'CONECTADO', { phone }).catch(() => {});
 
         console.log(`[WhatsAppManager] ¡Sesión WhatsApp CONECTADA para Usuario ID ${id}! (${phone})`);
+        settleQr(null);
       });
 
       client.on('message', async (msg) => {
@@ -308,25 +389,37 @@ class WhatsAppManager {
       });
 
       client.on('auth_failure', (msg) => {
+        if (this.sessions.get(id) !== sessionState) return;
         console.warn(`[WhatsAppManager] Fallo auth Usuario ID ${id}:`, msg);
         sessionState.status = 'DESCONECTADO';
-        sessionState.error = msg;
+        sessionState.error = msg || 'Error de autenticación en WhatsApp Web.';
         repo.setSessionStatus(id, 'DESCONECTADO').catch(() => {});
+        settleQr(null);
       });
 
       client.on('disconnected', (reason) => {
+        if (this.sessions.get(id) !== sessionState) return;
         console.log(`[WhatsAppManager] Sesión desconectada Usuario ID ${id}:`, reason);
+        if (sessionState.status === 'INICIALIZANDO' && !sessionState.error) {
+          sessionState.error = `Sesión desconectada durante el inicio (${reason || 'sin motivo'}).`;
+        }
         sessionState.status = 'DESCONECTADO';
         sessionState.client = null;
         sessionState.qrDataUrl = null;
         repo.setSessionStatus(id, 'DESCONECTADO').catch(() => {});
+        settleQr(null);
       });
 
       // Iniciar Puppeteer de forma protegida
       client.initialize().catch((initErr) => {
+        if (this.sessions.get(id) !== sessionState) return;
         console.warn(`[WhatsAppManager] Error inicializando cliente Puppeteer para ID ${id}:`, initErr.message);
-        sessionState.error = initErr.message;
-        if (resolveQr) resolveQr(null);
+        sessionState.status = 'DESCONECTADO';
+        sessionState.client = null;
+        sessionState.qrDataUrl = null;
+        sessionState.error = initErr.message || 'Error al inicializar Chromium/Puppeteer.';
+        repo.setSessionStatus(id, 'DESCONECTADO').catch(() => {});
+        settleQr(null);
 
         // Si falló por corrupción de perfil ('Socket'), purgar directorio para permitir reintento limpio
         if (initErr.message && initErr.message.includes('Socket')) {
@@ -354,13 +447,16 @@ class WhatsAppManager {
       return {
         success: true,
         status: sessionState.status,
-        message: 'Iniciando WhatsApp Web. El código QR aparecerá en pantalla en unos segundos.',
-        qrDataUrl: sessionState.qrDataUrl || null
+        message: sessionState.error || 'Iniciando WhatsApp Web. El código QR aparecerá en pantalla en unos segundos.',
+        qrDataUrl: sessionState.qrDataUrl || null,
+        error_en_vivo: sessionState.error || null
       };
 
     } catch (err) {
+      if (qrTimer) clearTimeout(qrTimer);
       console.error(`[WhatsAppManager] Error al preparar sesión ${id}:`, err);
       sessionState.status = 'DESCONECTADO';
+      sessionState.client = null;
       sessionState.error = err.message;
 
       await repo.setSessionStatus(id, 'DESCONECTADO');
@@ -477,29 +573,7 @@ class WhatsAppManager {
       // Limpiar bloqueos previos huérfanos antes de instanciar
       this.cleanSessionLocks(id);
 
-      const client = new Client({
-        authStrategy: new LocalAuth({
-          clientId: `session_${id}`,
-          dataPath: AUTH_DIR
-        }),
-        puppeteer: {
-          headless: true,
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--disable-gpu',
-            '--disable-features=IsolateOrigins,site-per-process',
-            '--disable-site-isolation-trials',
-            '--disable-background-timer-throttling',
-            '--disable-backgrounding-occluded-windows',
-            '--disable-renderer-backgrounding'
-          ]
-        }
-      });
+      const client = new Client(this._buildClientConfig(LocalAuth, id));
 
       sessionState = {
         client,
