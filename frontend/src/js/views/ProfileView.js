@@ -43,6 +43,130 @@ export class ProfileView {
     return { code: '+591', number: str.replace(/[^\d]/g, '') };
   }
 
+  renderAchievementsSection(therapistData, extraStyle = 'margin-bottom: 1.5rem;') {
+    return `
+          <!-- BLOQUE A TODO EL ANCHO: LOGROS ACADÉMICOS Y PERFIL PÚBLICO HORIZONTAL -->
+          <div class="soft-card-static" style="background: #FFFFFF; ${extraStyle}">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.65rem; flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 0.8rem;">
+                <div class="soft-icon-box soft-icon-box-sm soft-icon-box-mint">
+                  ${Icons.badge(20, 'var(--soft-mint-deep)')}
+                </div>
+                <div>
+                  <h3 style="margin: 0; font-size: 1.18rem; font-weight: 800; color: var(--soft-text-title); letter-spacing: -0.015em;">
+                    Logros Académicos &amp; Perfil Público
+                  </h3>
+                  <div style="font-size: 0.74rem; color: var(--soft-mint-deep); font-weight: 700; text-transform: uppercase;">
+                    Visible para Familias y Tutores en Sobre Nosotros y Directorio
+                  </div>
+                </div>
+              </div>
+              <span class="soft-badge soft-badge-mint" style="font-size: 0.74rem;">
+                ${Icons.check(13, 'currentColor')}
+                <span>Sincronización en Tiempo Real con Portal Tutor</span>
+              </span>
+            </div>
+            <p style="font-size: 0.84rem; color: var(--soft-text-body); margin: 0 0 1.35rem 0; line-height: 1.48;">
+              Esta información se exhibe en la vitrina institucional para generar confianza y transparencia clínica en los padres de familia.
+            </p>
+
+            <form id="therapist-achievements-form">
+              <input type="hidden" id="therapist-id-hidden" value="${therapistData?.id || ''}" />
+              
+              <!-- FILA 1 HORIZONTAL: TÍTULOS Y DIPLOMADOS -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 1.25rem; margin-bottom: 1.15rem;">
+                <div>
+                  <label class="soft-label" for="therapist-titulos">
+                    Títulos Académicos y Grados Oficiales
+                  </label>
+                  <input 
+                    type="text" 
+                    id="therapist-titulos" 
+                    class="soft-input" 
+                    placeholder="Ej: Licenciada en Psicología por la UMSS, Maestría en Neuropsicología Infantil" 
+                    value="${this.escapeHtml(therapistData?.titulos_academicos || '')}" 
+                  />
+                  <div style="font-size: 0.73rem; color: var(--soft-text-muted); margin-top: 0.25rem;">
+                    Licenciaturas, Maestrías y Especialidades universitarias concluidas.
+                  </div>
+                </div>
+
+                <div>
+                  <label class="soft-label" for="therapist-diplomados">
+                    Diplomados, Certificaciones &amp; Cursos de Especialidad
+                  </label>
+                  <input 
+                    type="text" 
+                    id="therapist-diplomados" 
+                    class="soft-input" 
+                    placeholder="Ej: Certificación ADOS-2 y WISC-V, Diplomado en Neurodesarrollo y TCC" 
+                    value="${this.escapeHtml(therapistData?.diplomados_certificaciones || '')}" 
+                  />
+                  <div style="font-size: 0.73rem; color: var(--soft-text-muted); margin-top: 0.25rem;">
+                    Diplomados clínicos, pruebas estandarizadas certificadas y formación continua.
+                  </div>
+                </div>
+              </div>
+
+              <!-- FILA 2 HORIZONTAL: EXPERIENCIA Y ENFOQUE -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 1.25rem; margin-bottom: 1.15rem;">
+                <div>
+                  <label class="soft-label" for="therapist-experiencia">
+                    Años de Experiencia Clínica
+                  </label>
+                  <input 
+                    type="text" 
+                    id="therapist-experiencia" 
+                    class="soft-input" 
+                    placeholder="Ej: 10 años de trayectoria clínica en diagnóstico e intervención" 
+                    value="${this.escapeHtml(therapistData?.experiencia_anios || '')}" 
+                  />
+                </div>
+
+                <div>
+                  <label class="soft-label" for="therapist-enfoque">
+                    Enfoque o Corriente Terapéutica
+                  </label>
+                  <input 
+                    type="text" 
+                    id="therapist-enfoque" 
+                    class="soft-input" 
+                    placeholder="Ej: Cognitivo-Conductual, Neurocognitivo y Sistémico Familiar" 
+                    value="${this.escapeHtml(therapistData?.enfoque_terapeutico || '')}" 
+                  />
+                </div>
+              </div>
+
+              <!-- FILA 3 HORIZONTAL: BIOGRAFÍA -->
+              <div style="margin-bottom: 1.35rem;">
+                <label class="soft-label" for="therapist-bio">
+                  Biografía y Presentación Profesional
+                </label>
+                <textarea 
+                  id="therapist-bio" 
+                  class="soft-textarea" 
+                  rows="3" 
+                  placeholder="Resumen de su vocación profesional y áreas de atención clínica..."
+                >${this.escapeHtml(therapistData?.bio || '')}</textarea>
+              </div>
+
+              <!-- FILA 4: BARRA DE GUARDADO HORIZONTAL -->
+              <div style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem; border-top: 1px solid var(--soft-divider); padding-top: 1.15rem;">
+                <button 
+                  type="submit" 
+                  id="btn-save-therapist-achievements" 
+                  class="soft-btn soft-btn-lvl-1" 
+                  style="padding: 0.75rem 1.75rem;"
+                >
+                  ${Icons.check(16, '#FFFFFF')}
+                  <span>Guardar Logros Académicos y Perfil Público</span>
+                </button>
+              </div>
+            </form>
+          </div>
+    `;
+  }
+
   async render() {
     this.container.innerHTML = `
       <div style="text-align: center; padding: 3.5rem 1.5rem;">
@@ -67,14 +191,16 @@ export class ProfileView {
       }
 
       let therapistData = null;
-      if (user && user.rol === 'TERAPEUTA') {
+      if (user && (user.rol === 'TERAPEUTA' || user.rol === 'ADMIN')) {
         try {
           const tRes = await apiClient.get('/therapists/me');
           if (tRes?.data) {
             therapistData = tRes.data;
           }
         } catch (te) {
-          console.warn('[ProfileView] No se pudo cargar perfil de terapeuta:', te);
+          if (user.rol === 'TERAPEUTA') {
+            console.warn('[ProfileView] No se pudo cargar perfil de terapeuta:', te);
+          }
         }
       }
 
@@ -360,125 +486,7 @@ export class ProfileView {
             </div>
           </div>
 
-          <!-- BLOQUE INTERMEDIO A TODO EL ANCHO: LOGROS ACADÉMICOS Y PERFIL PÚBLICO HORIZONTAL -->
-          <div class="soft-card-static" style="background: #FFFFFF; margin-bottom: 1.5rem;">
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.65rem; flex-wrap: wrap;">
-              <div style="display: flex; align-items: center; gap: 0.8rem;">
-                <div class="soft-icon-box soft-icon-box-sm soft-icon-box-mint">
-                  ${Icons.badge(20, 'var(--soft-mint-deep)')}
-                </div>
-                <div>
-                  <h3 style="margin: 0; font-size: 1.18rem; font-weight: 800; color: var(--soft-text-title); letter-spacing: -0.015em;">
-                    Logros Académicos &amp; Perfil Público
-                  </h3>
-                  <div style="font-size: 0.74rem; color: var(--soft-mint-deep); font-weight: 700; text-transform: uppercase;">
-                    Visible para Familias y Tutores en Sobre Nosotros y Directorio
-                  </div>
-                </div>
-              </div>
-              <span class="soft-badge soft-badge-mint" style="font-size: 0.74rem;">
-                ${Icons.check(13, 'currentColor')}
-                <span>Sincronización en Tiempo Real con Portal Tutor</span>
-              </span>
-            </div>
-            <p style="font-size: 0.84rem; color: var(--soft-text-body); margin: 0 0 1.35rem 0; line-height: 1.48;">
-              Esta información se exhibe en la vitrina institucional para generar confianza y transparencia clínica en los padres de familia.
-            </p>
-
-            <form id="therapist-achievements-form">
-              <input type="hidden" id="therapist-id-hidden" value="${therapistData?.id || ''}" />
-              
-              <!-- FILA 1 HORIZONTAL: TÍTULOS Y DIPLOMADOS -->
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 1.25rem; margin-bottom: 1.15rem;">
-                <div>
-                  <label class="soft-label" for="therapist-titulos">
-                    Títulos Académicos y Grados Oficiales
-                  </label>
-                  <input 
-                    type="text" 
-                    id="therapist-titulos" 
-                    class="soft-input" 
-                    placeholder="Ej: Licenciada en Psicología por la UMSS, Maestría en Neuropsicología Infantil" 
-                    value="${this.escapeHtml(therapistData?.titulos_academicos || '')}" 
-                  />
-                  <div style="font-size: 0.73rem; color: var(--soft-text-muted); margin-top: 0.25rem;">
-                    Licenciaturas, Maestrías y Especialidades universitarias concluidas.
-                  </div>
-                </div>
-
-                <div>
-                  <label class="soft-label" for="therapist-diplomados">
-                    Diplomados, Certificaciones &amp; Cursos de Especialidad
-                  </label>
-                  <input 
-                    type="text" 
-                    id="therapist-diplomados" 
-                    class="soft-input" 
-                    placeholder="Ej: Certificación ADOS-2 y WISC-V, Diplomado en Neurodesarrollo y TCC" 
-                    value="${this.escapeHtml(therapistData?.diplomados_certificaciones || '')}" 
-                  />
-                  <div style="font-size: 0.73rem; color: var(--soft-text-muted); margin-top: 0.25rem;">
-                    Diplomados clínicos, pruebas estandarizadas certificadas y formación continua.
-                  </div>
-                </div>
-              </div>
-
-              <!-- FILA 2 HORIZONTAL: EXPERIENCIA Y ENFOQUE -->
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 1.25rem; margin-bottom: 1.15rem;">
-                <div>
-                  <label class="soft-label" for="therapist-experiencia">
-                    Años de Experiencia Clínica
-                  </label>
-                  <input 
-                    type="text" 
-                    id="therapist-experiencia" 
-                    class="soft-input" 
-                    placeholder="Ej: 10 años de trayectoria clínica en diagnóstico e intervención" 
-                    value="${this.escapeHtml(therapistData?.experiencia_anios || '')}" 
-                  />
-                </div>
-
-                <div>
-                  <label class="soft-label" for="therapist-enfoque">
-                    Enfoque o Corriente Terapéutica
-                  </label>
-                  <input 
-                    type="text" 
-                    id="therapist-enfoque" 
-                    class="soft-input" 
-                    placeholder="Ej: Cognitivo-Conductual, Neurocognitivo y Sistémico Familiar" 
-                    value="${this.escapeHtml(therapistData?.enfoque_terapeutico || '')}" 
-                  />
-                </div>
-              </div>
-
-              <!-- FILA 3 HORIZONTAL: BIOGRAFÍA -->
-              <div style="margin-bottom: 1.35rem;">
-                <label class="soft-label" for="therapist-bio">
-                  Biografía y Presentación Profesional
-                </label>
-                <textarea 
-                  id="therapist-bio" 
-                  class="soft-textarea" 
-                  rows="3" 
-                  placeholder="Resumen de su vocación profesional y áreas de atención clínica..."
-                >${this.escapeHtml(therapistData?.bio || '')}</textarea>
-              </div>
-
-              <!-- FILA 4: BARRA DE GUARDADO HORIZONTAL -->
-              <div style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem; border-top: 1px solid var(--soft-divider); padding-top: 1.15rem;">
-                <button 
-                  type="submit" 
-                  id="btn-save-therapist-achievements" 
-                  class="soft-btn soft-btn-lvl-1" 
-                  style="padding: 0.75rem 1.75rem;"
-                >
-                  ${Icons.check(16, '#FFFFFF')}
-                  <span>Guardar Logros Académicos y Perfil Público</span>
-                </button>
-              </div>
-            </form>
-          </div>
+          ${this.renderAchievementsSection(therapistData, 'margin-bottom: 1.5rem;')}
 
           <!-- BLOQUE INFERIOR A TODO EL ANCHO: SEGURIDAD Y CAMBIO DE CONTRASEÑA HORIZONTAL -->
           <div class="soft-card-static">
@@ -1003,6 +1011,7 @@ export class ProfileView {
               </div>
             </div>
           </div>
+          ${user.rol === 'ADMIN' && therapistData?.id ? this.renderAchievementsSection(therapistData, 'margin-top: 1.5rem;') : ''}
         `;
       }
 

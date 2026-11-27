@@ -41,7 +41,27 @@ export class TutorAboutUsView {
     const mision = this.config?.INSTITUCION_MISION || 'Brindar evaluación diagnóstica neurocognitiva y psicopedagógica integral, basada en evidencia científica y calidez humana, potenciando el aprendizaje y bienestar emocional de cada paciente y su familia.';
     const vision = this.config?.INSTITUCION_VISION || 'Ser el centro psicopedagógico y neurocognitivo de mayor prestigio y referencia en Cochabamba y Bolivia, reconocido por su rigor ético, metodologías personalizadas y articulación con familias y colegios.';
     const metas = this.config?.INSTITUCION_METAS || '1. Detección temprana de dificultades del aprendizaje y neurodesarrollo. 2. Tratamientos individualizados con metodología SOAP y metas SMART. 3. Respaldo ético con 100% de terapeutas colegiados y secreto profesional bajo Ley 3131.';
-    const directora = this.config?.INSTITUCION_DIRECTORA || 'Mgr. Grisel Aguilar Apaza';
+    const directora = (this.config?.INSTITUCION_DIRECTORA !== undefined && this.config.INSTITUCION_DIRECTORA.trim() !== '')
+      ? this.config.INSTITUCION_DIRECTORA
+      : 'Mgr. Grisel Aguilar Apaza';
+    const direccionEtiqueta = (this.config?.INSTITUCION_DIRECCION_ETIQUETA !== undefined && this.config.INSTITUCION_DIRECCION_ETIQUETA.trim() !== '')
+      ? this.config.INSTITUCION_DIRECCION_ETIQUETA
+      : 'DIRECCIÓN GENERAL & FUNDACIÓN';
+    const direccionMatricula = this.config?.INSTITUCION_DIRECCION_MATRICULA !== undefined
+      ? this.config.INSTITUCION_DIRECCION_MATRICULA.trim()
+      : 'MATRÍCULA CPB-1402';
+    const direccionBio = (this.config?.INSTITUCION_DIRECCION_BIO !== undefined && this.config.INSTITUCION_DIRECCION_BIO.trim() !== '')
+      ? this.config.INSTITUCION_DIRECCION_BIO
+      : 'Máster en Neuropsicología Clínica e intervención en el neurodesarrollo infantil y juvenil. Lidera la dirección técnica de PSI Aprende garantizando que cada protocolo de evaluación y plan terapéutico individualizado PTI responda a baremos científicos actualizados y a un trato empático hacia las familias.';
+    const directoraFotoRaw = (this.config?.INSTITUCION_DIRECTORA_FOTO || '').trim();
+    const directoraFoto = /^https?:\/\//i.test(directoraFotoRaw) || directoraFotoRaw.startsWith('/') ? directoraFotoRaw : '';
+    const directoraInitials = directora
+      .replace(/^(Mgr\.|Lic\.|Dr\.|Dra\.|Ps\.|MSc\.)\s*/i, '')
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(n => n[0].toUpperCase())
+      .join('') || 'GA';
 
     this.container.innerHTML = `
       <div class="page-container panel-general" style="max-width: 1240px; margin: 0 auto; padding-bottom: 3.5rem;">
@@ -144,24 +164,28 @@ export class TutorAboutUsView {
         <div class="soft-card-static" style="padding: 1.85rem 2rem; margin-bottom: 2.25rem; background: linear-gradient(135deg, #FFFFFF 0%, var(--soft-lavender-surface) 100%);">
           <div style="display: flex; align-items: center; gap: 1.8rem; flex-wrap: wrap;">
             
-            <div style="width: 90px; height: 90px; border-radius: 28px; background: linear-gradient(135deg, var(--soft-purple-primary) 0%, var(--soft-purple-dark, #3E3076) 100%); color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; font-weight: 800; flex-shrink: 0; box-shadow: 0 8px 24px rgba(88,66,148,0.22); border: 2px solid #FFFFFF;">
-              GA
+            <div style="width: 90px; height: 90px; border-radius: 28px; overflow: hidden; background: linear-gradient(135deg, var(--soft-purple-primary) 0%, var(--soft-purple-dark, #3E3076) 100%); color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; font-weight: 800; flex-shrink: 0; box-shadow: 0 8px 24px rgba(88,66,148,0.22); border: 2px solid #FFFFFF;">
+              ${directoraFoto ? `
+                <img src="${this.escapeHtml(directoraFoto)}" alt="${this.escapeHtml(directora)}" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+              ` : this.escapeHtml(directoraInitials)}
             </div>
 
             <div style="flex: 1 1 360px; min-width: min(100%, 260px);">
               <div style="display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.35rem; flex-wrap: wrap;">
                 <span class="soft-badge soft-badge-lavender" style="font-size: 0.72rem; font-weight: 700;">
-                  DIRECCIÓN GENERAL &amp; FUNDACIÓN
+                  ${this.escapeHtml(direccionEtiqueta)}
                 </span>
-                <span class="soft-badge soft-badge-mint" style="font-size: 0.72rem; font-weight: 700;">
-                  MATRÍCULA CPB-1402
-                </span>
+                ${direccionMatricula ? `
+                  <span class="soft-badge soft-badge-mint" style="font-size: 0.72rem; font-weight: 700;">
+                    ${this.escapeHtml(direccionMatricula)}
+                  </span>
+                ` : ''}
               </div>
               <h2 style="font-size: 1.45rem; font-weight: 800; color: var(--soft-text-title); margin: 0 0 0.45rem 0; letter-spacing: -0.02em;">
                 ${this.escapeHtml(directora)}
               </h2>
-              <p style="font-size: 0.9rem; color: var(--soft-text-body); line-height: 1.6; margin: 0;">
-                Máster en Neuropsicología Clínica e intervención en el neurodesarrollo infantil y juvenil. Lidera la dirección técnica de PSI Aprende garantizando que cada protocolo de evaluación y plan terapéutico individualizado PTI responda a baremos científicos actualizados y a un trato empático hacia las familias.
+              <p style="font-size: 0.9rem; color: var(--soft-text-body); line-height: 1.6; margin: 0; white-space: pre-line;">
+                ${this.escapeHtml(direccionBio)}
               </p>
             </div>
 

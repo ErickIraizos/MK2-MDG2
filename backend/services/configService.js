@@ -95,6 +95,18 @@ export class ConfigService {
       await this.configRepo.setKey('INSTITUCION_DIRECTORA', directora.trim(), userId);
     }
 
+    const direccionFields = [
+      ['INSTITUCION_DIRECCION_ETIQUETA', data.INSTITUCION_DIRECCION_ETIQUETA ?? data.direccion_etiqueta],
+      ['INSTITUCION_DIRECCION_MATRICULA', data.INSTITUCION_DIRECCION_MATRICULA ?? data.direccion_matricula],
+      ['INSTITUCION_DIRECCION_BIO', data.INSTITUCION_DIRECCION_BIO ?? data.direccion_bio],
+      ['INSTITUCION_DIRECTORA_FOTO', data.INSTITUCION_DIRECTORA_FOTO ?? data.directora_foto]
+    ];
+    for (const [k, v] of direccionFields) {
+      if (v !== undefined && typeof v === 'string') {
+        await this.configRepo.setKey(k, v.trim(), userId);
+      }
+    }
+
     const googleMapsUrl = data.google_maps_url !== undefined ? data.google_maps_url : data.INSTITUCION_GOOGLE_MAPS_URL;
     if (googleMapsUrl !== undefined && typeof googleMapsUrl === 'string') {
       await this.configRepo.setKey('INSTITUCION_GOOGLE_MAPS_URL', googleMapsUrl.trim(), userId);

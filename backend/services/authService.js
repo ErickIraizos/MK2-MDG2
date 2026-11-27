@@ -40,19 +40,21 @@ export class AuthService {
     await this.userRepo.updateLastAccess(user.id);
     await this.userRepo.logAudit(user.id, 'LOGIN_SUCCESS', 'AUTH', `Acceso exitoso con rol ${user.rol_nombre}`, ip);
 
-    // Obtener datos clínicos si es terapeuta
+    // Obtener datos clínicos si es terapeuta o admin con ficha vinculada
     let terapeutaInfo = null;
-    if (user.rol_nombre === 'TERAPEUTA') {
-      const therapist = await this.therapistRepo.findByUserId(user.id);
-      if (therapist) {
-        terapeutaInfo = {
-          id: therapist.id,
-          registro_profesional: therapist.registro_profesional,
-          especialidad: therapist.especialidad_nombre,
-          foto_url: therapist.foto_url || null,
-          firma_digital_blob: therapist.firma_digital_blob || user.firma_digital_blob || null
-        };
-      }
+    if (user.rol_nombre === 'TERAPEUTA' || user.rol_nombre === 'ADMIN') {
+      try {
+        const therapist = await this.therapistRepo.findByUserId(user.id);
+        if (therapist) {
+          terapeutaInfo = {
+            id: therapist.id,
+            registro_profesional: therapist.registro_profesional,
+            especialidad: therapist.especialidad_nombre,
+            foto_url: therapist.foto_url || null,
+            firma_digital_blob: therapist.firma_digital_blob || user.firma_digital_blob || null
+          };
+        }
+      } catch (thErr) {}
     }
 
     let tutorInfo = null;
@@ -302,7 +304,7 @@ export class AuthService {
       created_at: user.created_at
     };
 
-    if (user.rol_nombre === 'TERAPEUTA') {
+    if (user.rol_nombre === 'TERAPEUTA' || user.rol_nombre === 'ADMIN') {
       try {
         const therapist = await this.therapistRepo.findByUserId(userId);
         if (therapist) {

@@ -2,6 +2,7 @@ import { apiClient } from '../../api/apiClient.js';
 import { Toast } from '../../components/Toast.js';
 import { Icons } from '../../components/Icons.js';
 import { ImageLightboxModal } from '../../components/ImageLightboxModal.js';
+import { store } from '../../store.js';
 
 export class SettingsView {
   constructor(container) {
@@ -52,6 +53,17 @@ export class SettingsView {
       const fotoCons1Config = this.configs.find(c => c.clave === 'INSTITUCION_FOTO_CONS1');
       const fotoCons2Config = this.configs.find(c => c.clave === 'INSTITUCION_FOTO_CONS2');
       const fotoCons3Config = this.configs.find(c => c.clave === 'INSTITUCION_FOTO_CONS3');
+      const directoraConfig = this.configs.find(c => c.clave === 'INSTITUCION_DIRECTORA');
+      const direccionEtiquetaConfig = this.configs.find(c => c.clave === 'INSTITUCION_DIRECCION_ETIQUETA');
+      const direccionMatriculaConfig = this.configs.find(c => c.clave === 'INSTITUCION_DIRECCION_MATRICULA');
+      const direccionBioConfig = this.configs.find(c => c.clave === 'INSTITUCION_DIRECCION_BIO');
+      const directoraFotoConfig = this.configs.find(c => c.clave === 'INSTITUCION_DIRECTORA_FOTO');
+
+      const currentDirectora = (directoraConfig && directoraConfig.valor !== null && directoraConfig.valor !== '') ? directoraConfig.valor : 'Mgr. Grisel Aguilar Apaza';
+      const currentDirEtiqueta = (direccionEtiquetaConfig && direccionEtiquetaConfig.valor !== null && direccionEtiquetaConfig.valor !== '') ? direccionEtiquetaConfig.valor : 'DIRECCIÓN GENERAL & FUNDACIÓN';
+      const currentDirMatricula = direccionMatriculaConfig ? (direccionMatriculaConfig.valor || '') : 'MATRÍCULA CPB-1402';
+      const currentDirBio = (direccionBioConfig && direccionBioConfig.valor !== null && direccionBioConfig.valor !== '') ? direccionBioConfig.valor : 'Máster en Neuropsicología Clínica e intervención en el neurodesarrollo infantil y juvenil. Lidera la dirección técnica de PSI Aprende garantizando que cada protocolo de evaluación y plan terapéutico individualizado PTI responda a baremos científicos actualizados y a un trato empático hacia las familias.';
+      const currentDirFoto = directoraFotoConfig ? (directoraFotoConfig.valor || '') : '';
 
       const currentName = nameConfig ? nameConfig.valor : 'Centro Psicopedagógico y de Atención Psicológica PSI Aprende';
       const currentAddress = addressConfig ? addressConfig.valor : 'Calle Ladislao Cabrera entre Calle Antezana y Calle 16 de Julio, Cochabamba, Bolivia';
@@ -628,6 +640,95 @@ export class SettingsView {
               </div>
             </div>
 
+            <!-- MÓDULO 6: DIRECCIÓN GENERAL & FUNDACIÓN (SOBRE NOSOTROS) -->
+            <div class="soft-card-static" style="padding: 1.75rem 2rem;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.5rem; border-bottom: 1px solid var(--soft-divider); padding-bottom: 1.15rem;">
+                <div style="display: flex; align-items: center; gap: 0.85rem;">
+                  <div class="soft-icon-box soft-icon-box-sm soft-icon-box-lavender">
+                    ${Icons.users ? Icons.users(20, 'var(--soft-purple-primary)') : Icons.badge(20, 'var(--soft-purple-primary)')}
+                  </div>
+                  <div>
+                    <h3 style="margin: 0; font-size: 1.22rem; font-weight: 800; color: var(--soft-text-title); letter-spacing: -0.015em;">
+                      Dirección General &amp; Fundación (Sobre Nosotros)
+                    </h3>
+                    <div style="font-size: 0.82rem; color: var(--soft-text-body); margin-top: 0.15rem;">
+                      Texto y fotografía exhibidos en la cabecera de Sobre Nosotros para las familias
+                    </div>
+                  </div>
+                </div>
+                <span class="soft-badge soft-badge-mint">Visible en Portal Tutor</span>
+              </div>
+
+              <form id="form-settings-direccion">
+                <div style="display: flex; gap: 1.75rem; align-items: flex-start; flex-wrap: wrap; margin-bottom: 1.35rem;">
+                  
+                  <!-- COLUMNA FOTO DE DIRECCIÓN -->
+                  <div style="flex: 0 0 auto; min-width: min(100%, 220px); display: flex; flex-direction: column; align-items: center; gap: 0.75rem; background: var(--soft-lavender-surface); border: 1px solid var(--soft-border-card-inner); border-radius: 16px; padding: 1.15rem;">
+                    <div id="dir-photo-preview-box" style="width: 96px; height: 96px; border-radius: 26px; overflow: hidden; background: linear-gradient(135deg, var(--soft-purple-primary) 0%, #3E3076 100%); color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 800; border: 2px solid #FFFFFF; box-shadow: 0 8px 20px rgba(88,66,148,0.2);">
+                      ${currentDirFoto ? `
+                        <img id="preview-dir-foto" src="${this.escapeHtml(currentDirFoto)}" alt="Foto Dirección General" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;" title="Clic para agrandar" />
+                      ` : `<span>GA</span>`}
+                    </div>
+                    <input type="hidden" id="input-dir-foto" value="${this.escapeHtml(currentDirFoto)}" />
+                    <input type="file" id="file-dir-foto" accept="image/*" style="display: none;" />
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; width: 100%;">
+                      <button type="button" id="btn-upload-dir-photo" class="soft-btn soft-btn-lvl-1-muted soft-btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                        ${Icons.upload(14, 'currentColor')}
+                        <span>${currentDirFoto ? 'Cambiar Foto' : 'Subir Foto'}</span>
+                      </button>
+                      <button type="button" id="btn-clear-dir-photo" class="soft-btn soft-btn-lvl-2-soft soft-btn-sm" style="color: #E11D48; ${currentDirFoto ? '' : 'display: none;'}">
+                        ${Icons.trash(13)}
+                        <span>Quitar</span>
+                      </button>
+                    </div>
+                    <div style="font-size: 0.72rem; color: var(--soft-text-muted); text-align: center; line-height: 1.35;">
+                      JPG, PNG o WEBP (máx. 4 MB). Si la quitas se mostrarán las iniciales.
+                    </div>
+                  </div>
+
+                  <!-- COLUMNA TEXTOS EDITABLES -->
+                  <div style="flex: 1 1 360px; min-width: min(100%, 280px); display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 1rem;">
+                      <div>
+                        <label class="soft-label" for="dir-etiqueta">
+                          Etiqueta Principal
+                        </label>
+                        <input type="text" id="dir-etiqueta" class="soft-input" placeholder="Ej: DIRECCIÓN GENERAL & FUNDACIÓN" value="${this.escapeHtml(currentDirEtiqueta)}" />
+                      </div>
+                      <div>
+                        <label class="soft-label" for="dir-matricula">
+                          Insignia Secundaria / Matrícula (Opcional)
+                        </label>
+                        <input type="text" id="dir-matricula" class="soft-input" placeholder="Ej: MATRÍCULA CPB-1402" value="${this.escapeHtml(currentDirMatricula)}" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label class="soft-label" for="dir-nombre">
+                        Nombre o Título Destacado *
+                      </label>
+                      <input type="text" id="dir-nombre" class="soft-input" placeholder="Ej: Mgr. Grisel Aguilar Apaza" value="${this.escapeHtml(currentDirectora)}" required />
+                    </div>
+
+                    <div>
+                      <label class="soft-label" for="dir-bio">
+                        Texto Descriptivo / Presentación del Centro *
+                      </label>
+                      <textarea id="dir-bio" class="soft-textarea" rows="4" placeholder="Escribe aquí el mensaje o presentación institucional que verán las familias..." required>${this.escapeHtml(currentDirBio)}</textarea>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; border-top: 1px solid var(--soft-divider); padding-top: 1.25rem;">
+                  <button type="submit" id="btn-save-direccion" class="soft-btn soft-btn-lvl-1" style="padding: 0.75rem 1.85rem;">
+                    ${Icons.check(15, '#FFFFFF')}
+                    <span>Guardar Dirección General</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
           </div>
         </div>
       `;
@@ -887,6 +988,129 @@ export class SettingsView {
         Toast.error(saveErr.message || 'Error al guardar la galería.');
       } finally {
         btnSavePhotos.disabled = false;
+      }
+    });
+
+    // 5. Gestión de Dirección General & Fundación (Sobre Nosotros)
+    const dirPhotoPreviewBox = document.getElementById('dir-photo-preview-box');
+    const dirPhotoInput = document.getElementById('input-dir-foto');
+    const dirFileInput = document.getElementById('file-dir-foto');
+    const btnUploadDirPhoto = document.getElementById('btn-upload-dir-photo');
+    const btnClearDirPhoto = document.getElementById('btn-clear-dir-photo');
+    const formDireccion = document.getElementById('form-settings-direccion');
+    const dirNombreInput = document.getElementById('dir-nombre');
+
+    const renderDirPreview = (url) => {
+      if (!dirPhotoPreviewBox) return;
+      if (url) {
+        dirPhotoPreviewBox.innerHTML = `<img id="preview-dir-foto" src="${this.escapeHtml(url)}" alt="Foto Dirección General" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;" title="Clic para agrandar" />`;
+        const imgEl = document.getElementById('preview-dir-foto');
+        imgEl?.addEventListener('click', () => {
+          ImageLightboxModal.show({
+            imageUrl: url,
+            title: 'Dirección General & Fundación',
+            subtitle: dirNombreInput?.value.trim() || 'Centro PSI Aprende'
+          });
+        });
+        if (btnClearDirPhoto) btnClearDirPhoto.style.display = 'inline-flex';
+        const uploadSpan = btnUploadDirPhoto?.querySelector('span');
+        if (uploadSpan) uploadSpan.textContent = 'Cambiar Foto';
+      } else {
+        const nameVal = dirNombreInput?.value.trim() || 'GA';
+        const initials = nameVal
+          .replace(/^(Mgr\.|Lic\.|Dr\.|Dra\.|Ps\.|MSc\.)\s*/i, '')
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0, 2)
+          .map(n => n[0].toUpperCase())
+          .join('') || 'GA';
+        dirPhotoPreviewBox.innerHTML = `<span>${this.escapeHtml(initials)}</span>`;
+        if (btnClearDirPhoto) btnClearDirPhoto.style.display = 'none';
+        const uploadSpan = btnUploadDirPhoto?.querySelector('span');
+        if (uploadSpan) uploadSpan.textContent = 'Subir Foto';
+      }
+    };
+
+    const existingDirImg = document.getElementById('preview-dir-foto');
+    existingDirImg?.addEventListener('click', () => {
+      ImageLightboxModal.show({
+        imageUrl: existingDirImg.src,
+        title: 'Dirección General & Fundación',
+        subtitle: dirNombreInput?.value.trim() || 'Centro PSI Aprende'
+      });
+    });
+
+    btnUploadDirPhoto?.addEventListener('click', () => dirFileInput?.click());
+
+    btnClearDirPhoto?.addEventListener('click', () => {
+      if (dirPhotoInput) dirPhotoInput.value = '';
+      if (dirFileInput) dirFileInput.value = '';
+      renderDirPreview('');
+    });
+
+    dirFileInput?.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if (typeof ev.target?.result === 'string') {
+          renderDirPreview(ev.target.result);
+        }
+      };
+      reader.readAsDataURL(file);
+
+      const formData = new FormData();
+      formData.append('foto', file);
+
+      try {
+        Toast.info('Subiendo fotografía de Dirección General...');
+        const res = await apiClient.upload('/config/facility-photo', formData);
+        if (res?.data?.url) {
+          if (dirPhotoInput) dirPhotoInput.value = res.data.url;
+          renderDirPreview(res.data.url);
+          Toast.success('Fotografía subida. Pulsa "Guardar Dirección General" para publicarla.');
+        } else {
+          throw new Error(res?.error?.message || 'Error al subir fotografía.');
+        }
+      } catch (uploadErr) {
+        console.error('[Upload Direccion Photo Error]', uploadErr);
+        Toast.error(uploadErr.message || 'Error al subir fotografía.');
+      }
+    });
+
+    formDireccion?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const etiqueta = document.getElementById('dir-etiqueta')?.value.trim() || '';
+      const matricula = document.getElementById('dir-matricula')?.value.trim() || '';
+      const nombre = dirNombreInput?.value.trim() || '';
+      const bio = document.getElementById('dir-bio')?.value.trim() || '';
+      const foto = dirPhotoInput?.value.trim() || '';
+      const btnSaveDir = document.getElementById('btn-save-direccion');
+
+      if (!nombre || !bio) {
+        Toast.warning('El nombre destacado y el texto descriptivo son obligatorios.');
+        return;
+      }
+
+      try {
+        if (btnSaveDir) btnSaveDir.disabled = true;
+        const resDir = await apiClient.put('/config/institution', {
+          INSTITUCION_DIRECTORA: nombre,
+          INSTITUCION_DIRECCION_ETIQUETA: etiqueta,
+          INSTITUCION_DIRECCION_MATRICULA: matricula,
+          INSTITUCION_DIRECCION_BIO: bio,
+          INSTITUCION_DIRECTORA_FOTO: foto
+        });
+        if (resDir?.data) {
+          store.setPublicConfig(resDir.data);
+        }
+        Toast.success('Sección Dirección General & Fundación actualizada y guardada permanentemente.');
+        await this.render();
+      } catch (err) {
+        Toast.error(err.message || 'Error al guardar Dirección General.');
+      } finally {
+        if (btnSaveDir) btnSaveDir.disabled = false;
       }
     });
   }
