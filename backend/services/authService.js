@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config/environment.js';
 import { AppError } from '../core/AppError.js';
 import { RepositoryFactory } from '../core/RepositoryFactory.js';
+import { storageService } from './storageService.js';
 
 export class AuthService {
   constructor(
@@ -48,6 +49,7 @@ export class AuthService {
           id: therapist.id,
           registro_profesional: therapist.registro_profesional,
           especialidad: therapist.especialidad_nombre,
+          foto_url: therapist.foto_url || null,
           firma_digital_blob: therapist.firma_digital_blob || user.firma_digital_blob || null
         };
       }
@@ -91,6 +93,7 @@ export class AuthService {
         email: user.email,
         rol: user.rol_nombre,
         telefono: user.telefono,
+        foto_url: user.foto_url || terapeutaInfo?.foto_url || null,
         firma_digital_blob: user.firma_digital_blob || terapeutaInfo?.firma_digital_blob || null,
         terapeuta: terapeutaInfo,
         tutor: tutorInfo
@@ -292,6 +295,7 @@ export class AuthService {
       rol: user.rol_nombre,
       rol_id: user.rol_id,
       telefono: user.telefono,
+      foto_url: user.foto_url || null,
       firma_digital_blob: user.firma_digital_blob || null,
       firma_actualizada_at: user.firma_actualizada_at || null,
       ultimo_acceso: user.ultimo_acceso,
@@ -306,9 +310,13 @@ export class AuthService {
             id: therapist.id,
             registro_profesional: therapist.registro_profesional,
             especialidad: therapist.especialidad_nombre,
+            foto_url: therapist.foto_url || user.foto_url || null,
             firma_digital_blob: therapist.firma_digital_blob || user.firma_digital_blob || null,
             firma_actualizada_at: therapist.firma_actualizada_at || user.firma_actualizada_at || null
           };
+          if (!result.foto_url && therapist.foto_url) {
+            result.foto_url = therapist.foto_url;
+          }
           if (!result.firma_digital_blob && therapist.firma_digital_blob) {
             result.firma_digital_blob = therapist.firma_digital_blob;
           }
@@ -452,5 +460,46 @@ export class AuthService {
     }
 
     return this.getProfile(userId);
+  }
+
+  async updateProfilePhoto(userId, file, ip = null) {
+    const user = await this.userRepo.findById(userId);
+    if (!user) {
+      throw AppError.notFound('Usuario no encontrado.');
+    }
+    if (!file || !file.buffer) {
+      throw AppError.badRequest('Archivo de imagen inválido.');
+    }
+
+    const objectPath = `profiles/${storageService.buildSafeFilename(`user_${userId}`, file.originalname)}`;
+    const uploaded = await storageService.uploadPublic(objectPath, file.buffer, file.mimetype);
+
+    await this.userRepo.update(userId, { foto_url: uploaded.publicUrl });
+
+    // Si también tiene ficha de terapeuta asociada, mantener sincronizada la fotografía
+    try {
+      const therapist = await this.therapistRepo.findByUserId(userId);
+      if (therapist) {
+        await this.therapistRepo.update(therapist.id, { foto_url: uploaded.publicUrl });
+      }
+    } catch (syncErr) {
+      console.warn('[AuthService] Aviso al sincronizar foto en terapeuta:', syncErr.message);
+    }
+
+    await this.userRepo.logAudit(
+      user.id,
+      'PROFILE_PHOTO_UPDATED',
+      'PERFIL',
+      `Fotografía de perfil actualizada (${uploaded.path})`,
+      ip
+    );
+
+    const updatedUser = await this.getProfile(userId);
+    return {
+      url: uploaded.publicUrl,
+      filename: uploaded.path,
+      size: file.size,
+      user: updatedUser
+    };
   }
 }

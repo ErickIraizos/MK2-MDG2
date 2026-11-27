@@ -30,11 +30,18 @@ export class Navbar {
         .map(n => n[0].toUpperCase())
         .join('');
 
+      const avatarPhoto = user.foto_url || user.terapeuta?.foto_url || null;
+      const safeAvatarPhoto = avatarPhoto && /^https?:\/\//i.test(avatarPhoto) ? avatarPhoto : null;
+
       authSection = `
         <div class="navbar-user-pill" style="display: flex; align-items: center; gap: 0.65rem;">
           ${NotificationCenter.renderButton()}
           <a href="#/profile" class="navbar-user-btn hover-glow-purple" title="Mi Perfil Institucional y Opciones de Seguridad">
-            <div class="navbar-user-avatar-mini">${initials}</div>
+            <div class="navbar-user-avatar-mini" style="overflow: hidden;">
+              ${safeAvatarPhoto
+                ? `<img src="${escapeHtml(safeAvatarPhoto)}" alt="${escapeHtml(initials)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" />`
+                : initials}
+            </div>
             <div class="navbar-user-text" style="text-align: left; line-height: 1.15;">
               <div class="navbar-user-name" style="font-weight: 700; font-size: 0.84rem; color: var(--soft-indigo-heading, #24285B); white-space: nowrap;">${escapeHtml(user.nombre_completo)}</div>
               <span class="badge ${roleBadgeClass}" style="font-size: 0.64rem; padding: 0.1rem 0.45rem; text-transform: uppercase;">

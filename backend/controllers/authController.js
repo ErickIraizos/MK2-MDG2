@@ -61,6 +61,26 @@ export class AuthController {
     }
   }
 
+  static async uploadProfilePhoto(req, res, next) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          error: { message: 'No se subió ningún archivo de imagen.' }
+        });
+      }
+      const ip = req.ip || req.headers['x-forwarded-for'];
+      const result = await authService.updateProfilePhoto(req.user.id, req.file, ip);
+      res.status(200).json({
+        success: true,
+        message: 'Foto de perfil actualizada exitosamente.',
+        data: result
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async changePassword(req, res, next) {
     try {
       const { currentPassword, newPassword } = req.body;

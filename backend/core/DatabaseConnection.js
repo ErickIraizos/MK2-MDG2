@@ -94,6 +94,9 @@ export class DatabaseConnection {
         if (!uCols.includes('firma_actualizada_at')) {
           db.exec("ALTER TABLE usuarios ADD COLUMN firma_actualizada_at DATETIME");
         }
+        if (!uCols.includes('foto_url')) {
+          db.exec("ALTER TABLE usuarios ADD COLUMN foto_url TEXT");
+        }
       }
 
       // 1.1b Migraciones seguras para terapeutas (firma digital colegiada CPB)

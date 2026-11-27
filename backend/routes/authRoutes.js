@@ -1,8 +1,22 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { AuthController } from '../controllers/authController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { validateBody, Validators } from '../middlewares/validationMiddleware.js';
 import { createRateLimiter } from '../middlewares/rateLimitMiddleware.js';
+import { createSafeFileFilter, verifyUploadedFileMiddleware } from '../utils/fileValidator.js';
+
+const ALLOWED_PHOTO_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
+
+const photoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 4 * 1024 * 1024 },
+  fileFilter: createSafeFileFilter(
+    ALLOWED_PHOTO_MIMES,
+    null,
+    'Formato no permitido. Utilice imágenes en formato JPG, PNG o WEBP.'
+  )
+});
 
 const router = Router();
 
@@ -98,6 +112,7 @@ router.post('/login', loginIpLimiter, loginAccountLimiter, validateBody(validate
 router.post('/register', registerLimiter, validateBody(validateRegister), AuthController.register);
 router.get('/me', authMiddleware, AuthController.me);
 router.put('/profile', authMiddleware, AuthController.updateProfile);
+router.post('/profile/photo', authMiddleware, photoUpload.single('foto'), verifyUploadedFileMiddleware(ALLOWED_PHOTO_MIMES), AuthController.uploadProfilePhoto);
 router.post('/change-password', authMiddleware, changePasswordLimiter, validateBody(validateChangePassword), AuthController.changePassword);
 
 export default router;

@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
   desvinculado_por_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
   firma_digital_blob TEXT,
   firma_actualizada_at TIMESTAMPTZ,
+  foto_url TEXT,
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );

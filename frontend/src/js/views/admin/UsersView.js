@@ -196,8 +196,8 @@ export class UsersView {
 
         <!-- MODAL DE BITÁCORA DE AUDITORÍA Y SEGURIDAD (NIVEL 2) -->
         <div id="audit-modal-backdrop" class="modal-backdrop" style="display: none; background: rgba(36, 40, 91, 0.45);">
-          <div class="soft-modal-card" style="max-width: 980px; width: 100%; max-height: 90vh;">
-            <div style="padding: 1.35rem 1.75rem; border-bottom: 1px solid var(--soft-divider); display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+          <div class="soft-modal-card" style="max-width: 980px; width: 100%; max-height: 90vh; display: flex; flex-direction: column;">
+            <div style="padding: 1.25rem 1.65rem; border-bottom: 1px solid var(--soft-divider); display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-shrink: 0;">
               <div style="display: flex; align-items: center; gap: 0.85rem;">
                 <div class="soft-icon-box soft-icon-box-sm soft-icon-box-lavender">
                   ${Icons.shield(20, 'var(--soft-purple-primary)')}
@@ -207,7 +207,7 @@ export class UsersView {
                     Bitácora Inalterable de Auditoría y Seguridad
                   </h3>
                   <div style="font-size: 0.8rem; color: var(--soft-text-body); margin-top: 0.15rem;">
-                    Registro cronológico de accesos, roles y transacciones auditables (SQLite WAL)
+                    Registro cronológico de accesos, roles y transacciones auditables
                   </div>
                 </div>
               </div>
@@ -216,9 +216,9 @@ export class UsersView {
               </button>
             </div>
 
-            <div style="padding: 1.35rem 1.75rem; overflow-y: auto; flex: 1;">
+            <div style="padding: 1.15rem 1.65rem; display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;">
               <!-- Filtro de bitácora -->
-              <div class="soft-search-box" style="margin-bottom: 1.1rem; min-width: 100%;">
+              <div class="soft-search-box" style="margin-bottom: 0.85rem; min-width: 100%; flex-shrink: 0;">
                 <span class="soft-search-box-icon">
                   ${Icons.search(16, 'currentColor')}
                 </span>
@@ -231,10 +231,15 @@ export class UsersView {
                 />
               </div>
 
-              <!-- Tabla de bitácora -->
-              <div class="soft-table-wrap">
+              <!-- Barra de desplazamiento horizontal superior sincronizada para PC -->
+              <div id="audit-top-scroll" style="overflow-x: auto; overflow-y: hidden; flex-shrink: 0; margin-bottom: 0.35rem; height: 14px; display: none;">
+                <div id="audit-top-scroll-inner" style="height: 1px;"></div>
+              </div>
+
+              <!-- Tabla de bitácora con alto acotado para mantener visible el scroll horizontal -->
+              <div id="audit-table-wrap" class="soft-table-wrap" style="flex: 1; min-height: 220px; max-height: 55vh; overflow: auto;">
                 <table class="soft-table" style="font-size: 0.82rem;">
-                  <thead>
+                  <thead style="position: sticky; top: 0; z-index: 2; background: var(--soft-lavender-surface);">
                     <tr>
                       <th>Fecha y Hora</th>
                       <th>Usuario / Rol</th>
@@ -255,7 +260,7 @@ export class UsersView {
               </div>
             </div>
 
-            <div style="padding: 1rem 1.75rem; border-top: 1px solid var(--soft-divider); display: flex; justify-content: flex-end; background: #FCFBFF;">
+            <div style="padding: 1rem 1.65rem; border-top: 1px solid var(--soft-divider); display: flex; justify-content: flex-end; background: #FCFBFF; flex-shrink: 0;">
               <button type="button" id="btn-close-audit-bottom" class="soft-btn soft-btn-lvl-2-soft">Cerrar Bitácora</button>
             </div>
           </div>
@@ -702,6 +707,7 @@ export class UsersView {
           </td>
         </tr>
       `;
+      requestAnimationFrame(() => this.syncAuditTopScrollbar());
       return;
     }
 
@@ -738,7 +744,7 @@ export class UsersView {
               ${escapeHtml(String(log.accion).replace(/_/g, ' '))}
             </span>
           </td>
-          <td style="font-size: 0.8rem; color: var(--soft-text-body);">
+          <td style="font-size: 0.8rem; color: var(--soft-text-body); min-width: 220px; max-width: 340px; word-break: break-word;">
             ${escapeHtml(log.detalles || '-')}
           </td>
           <td style="font-family: monospace; font-size: 0.76rem; color: var(--soft-text-muted); white-space: nowrap;">
@@ -747,6 +753,20 @@ export class UsersView {
         </tr>
       `;
     }).join('');
+
+    requestAnimationFrame(() => this.syncAuditTopScrollbar());
+  }
+
+  syncAuditTopScrollbar() {
+    const topScroll = document.getElementById('audit-top-scroll');
+    const topInner = document.getElementById('audit-top-scroll-inner');
+    const tableWrap = document.getElementById('audit-table-wrap');
+    if (!topScroll || !topInner || !tableWrap) return;
+
+    const hasHorizontalOverflow = tableWrap.scrollWidth > tableWrap.clientWidth + 2;
+    topScroll.style.display = hasHorizontalOverflow ? 'block' : 'none';
+    topInner.style.width = `${tableWrap.scrollWidth}px`;
+    topScroll.scrollLeft = tableWrap.scrollLeft;
   }
 
   attachEvents() {
@@ -765,21 +785,54 @@ export class UsersView {
     const btnCloseAuditModal = document.getElementById('btn-close-audit-modal');
     const btnCloseAuditBottom = document.getElementById('btn-close-audit-bottom');
     const auditSearchInput = document.getElementById('audit-search-input');
+    const auditTopScroll = document.getElementById('audit-top-scroll');
+    const auditTableWrap = document.getElementById('audit-table-wrap');
+
+    const closeAuditModal = () => {
+      if (auditModal) auditModal.style.display = 'none';
+      if (window.location.hash.includes('from=settings')) {
+        window.location.hash = '#/admin/settings';
+      }
+    };
+
+    if (auditTopScroll && auditTableWrap) {
+      let syncingTop = false;
+      let syncingWrap = false;
+      auditTopScroll.addEventListener('scroll', () => {
+        if (syncingWrap) return;
+        syncingTop = true;
+        auditTableWrap.scrollLeft = auditTopScroll.scrollLeft;
+        syncingTop = false;
+      });
+      auditTableWrap.addEventListener('scroll', () => {
+        if (syncingTop) return;
+        syncingWrap = true;
+        auditTopScroll.scrollLeft = auditTableWrap.scrollLeft;
+        syncingWrap = false;
+      });
+      auditTableWrap.addEventListener('wheel', (e) => {
+        if (e.shiftKey && Math.abs(e.deltaY) > 0) {
+          e.preventDefault();
+          auditTableWrap.scrollLeft += e.deltaY;
+        }
+      }, { passive: false });
+    }
 
     if (btnViewAudit && auditModal) {
       btnViewAudit.addEventListener('click', async () => {
         auditModal.style.display = 'flex';
         await this.loadAuditLogs();
+        this.syncAuditTopScrollbar();
       });
     }
     if (btnCloseAuditModal && auditModal) {
-      btnCloseAuditModal.addEventListener('click', () => auditModal.style.display = 'none');
+      btnCloseAuditModal.addEventListener('click', closeAuditModal);
     }
     if (btnCloseAuditBottom && auditModal) {
-      btnCloseAuditBottom.addEventListener('click', () => auditModal.style.display = 'none');
+      btnCloseAuditBottom.addEventListener('click', closeAuditModal);
     }
     auditModal?.addEventListener('click', (e) => {
-      if (e.target === auditModal) auditModal.style.display = 'none';
+      if (e.target === auditModal) closeAuditModal();
     });
 
     if (auditSearchInput) {

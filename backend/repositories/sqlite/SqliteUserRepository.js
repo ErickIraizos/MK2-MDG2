@@ -11,7 +11,7 @@ export class SqliteUserRepository extends IUserRepository {
     const stmt = this.db.prepare(`
       SELECT u.id, u.nombre_completo, u.email, u.password_hash, u.rol_id, 
              u.telefono, u.activo, u.ultimo_acceso, u.created_at,
-             u.firma_digital_blob, u.firma_actualizada_at,
+             u.firma_digital_blob, u.firma_actualizada_at, u.foto_url,
              r.nombre as rol_nombre
       FROM usuarios u
       JOIN roles r ON u.rol_id = r.id
@@ -24,7 +24,7 @@ export class SqliteUserRepository extends IUserRepository {
     const stmt = this.db.prepare(`
       SELECT u.id, u.nombre_completo, u.email, u.password_hash, u.rol_id, 
              u.telefono, u.activo, u.ultimo_acceso, u.created_at,
-             u.firma_digital_blob, u.firma_actualizada_at,
+             u.firma_digital_blob, u.firma_actualizada_at, u.foto_url,
              r.nombre as rol_nombre
       FROM usuarios u
       JOIN roles r ON u.rol_id = r.id
@@ -36,7 +36,7 @@ export class SqliteUserRepository extends IUserRepository {
   async findAll(filters = {}) {
     let query = `
       SELECT u.id, u.nombre_completo, u.email, u.rol_id, u.telefono, u.activo, 
-             u.ultimo_acceso, u.created_at, u.firma_digital_blob, u.firma_actualizada_at,
+             u.ultimo_acceso, u.created_at, u.firma_digital_blob, u.firma_actualizada_at, u.foto_url,
              r.nombre as rol_nombre
       FROM usuarios u
       JOIN roles r ON u.rol_id = r.id
@@ -126,6 +126,10 @@ export class SqliteUserRepository extends IUserRepository {
     if (data.firma_actualizada_at !== undefined) {
       fields.push('firma_actualizada_at = ?');
       params.push(data.firma_actualizada_at);
+    }
+    if (data.foto_url !== undefined) {
+      fields.push('foto_url = ?');
+      params.push(data.foto_url);
     }
 
     if (fields.length === 0) return this.findById(id);

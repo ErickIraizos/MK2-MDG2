@@ -323,7 +323,7 @@ export class ProfileView {
                     </div>
                     <div>
                       <h4 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--soft-text-title);">
-                        Firma Digital &amp; Rúbrica Colegiada
+                        Rúbrica Digital
                       </h4>
                       <span style="font-size: 0.72rem; color: var(--soft-purple-primary); font-weight: 700; text-transform: uppercase;">
                         Estampado en Fichas e Informes
@@ -608,14 +608,20 @@ export class ProfileView {
                 <span class="soft-status-dot-green" title="Cuenta activa en línea" aria-hidden="true"></span>
 
                 <div style="display: flex; align-items: center; gap: 1.15rem; margin-bottom: 1.3rem; padding-bottom: 1.2rem; border-bottom: 1px solid var(--soft-divider);">
-                  <div class="soft-avatar-lg">
-                    ${initials}
+                  <div style="position: relative; width: 68px; height: 68px; flex-shrink: 0;">
+                    ${user.foto_url ? `
+                      <img id="profile-admin-photo-img" src="${this.escapeHtml(user.foto_url)}" alt="Foto de perfil" style="width: 100%; height: 100%; border-radius: 20px; object-fit: cover; border: 2px solid var(--soft-purple-primary); box-shadow: 0 4px 14px rgba(88,66,148,0.2);" />
+                    ` : `
+                      <div class="soft-avatar-lg" style="width: 100%; height: 100%; font-size: 1.3rem;">
+                        ${initials}
+                      </div>
+                    `}
                   </div>
-                  <div style="min-width: 0; padding-right: 0.85rem;">
+                  <div style="min-width: 0; padding-right: 0.85rem; flex: 1;">
                     <h3 style="margin: 0 0 0.35rem 0; font-size: 1.24rem; font-weight: 800; color: var(--soft-text-title); letter-spacing: -0.015em; word-break: break-word;">
                       ${user.nombre_completo}
                     </h3>
-                    <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; ${user.rol === 'ADMIN' ? 'margin-bottom: 0.5rem;' : ''}">
                       <span class="soft-badge ${roleBadgeClass}" style="text-transform: uppercase; font-size: 0.7rem;">
                         ${user.rol}
                       </span>
@@ -624,6 +630,15 @@ export class ProfileView {
                         <span>Cuenta Activa</span>
                       </span>
                     </div>
+                    ${user.rol === 'ADMIN' ? `
+                      <div>
+                        <input type="file" id="admin-file-photo" accept="image/*" style="display: none;" />
+                        <button type="button" id="btn-upload-admin-photo" class="soft-btn soft-btn-lvl-1-muted soft-btn-sm" style="font-size: 0.75rem; padding: 0.35rem 0.75rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+                          ${Icons.upload(13, 'currentColor')}
+                          <span>${user.foto_url ? 'Cambiar Foto de Perfil' : 'Subir Mi Foto de Perfil'}</span>
+                        </button>
+                      </div>
+                    ` : ''}
                   </div>
                 </div>
 
@@ -694,7 +709,7 @@ export class ProfileView {
                     </div>
                     <div>
                       <h3 style="margin: 0; font-size: 1.18rem; font-weight: 800; color: var(--soft-text-title); letter-spacing: -0.015em;">
-                        Firma Digital y Rúbrica de Dirección
+                        Rúbrica Digital
                       </h3>
                       <div style="font-size: 0.74rem; color: var(--soft-purple-primary); font-weight: 700; text-transform: uppercase;">
                         Dirección General PSI Aprende
@@ -707,7 +722,7 @@ export class ProfileView {
 
                   ${user.firma_digital_blob ? `
                     <div id="sig-current-preview-box" style="background: #FFFFFF; border: 1.5px solid var(--soft-border-card-inner); border-radius: 14px; padding: 1.1rem; text-align: center; margin-bottom: 1.1rem;">
-                      <img src="${user.firma_digital_blob}" alt="Firma Registrada" style="max-height: 90px; max-width: 100%; object-fit: contain;" />
+                      <img src="${user.firma_digital_blob}" alt="Rúbrica Registrada" style="max-height: 90px; max-width: 100%; object-fit: contain;" />
                     </div>
                     <div style="display: flex; gap: 0.6rem;">
                       <button type="button" id="btn-open-signature-modal" class="soft-btn soft-btn-lvl-1-muted" style="flex: 1;">
@@ -722,7 +737,7 @@ export class ProfileView {
                   ` : `
                     <button type="button" id="btn-open-signature-modal" class="soft-btn soft-btn-lvl-1" style="width: 100%; padding: 0.72rem 1.15rem;">
                       ${Icons.signature(16, '#FFFFFF')}
-                      <span>Registrar Firma Digital</span>
+                      <span>Registrar Rúbrica Digital</span>
                     </button>
                   `}
                 </div>
@@ -1185,6 +1200,10 @@ export class ProfileView {
           const res = await apiClient.upload(endpoint, formData);
 
           if (res?.data?.url) {
+            const currentUser = store.getState().user;
+            if (currentUser) {
+              store.setUser({ ...currentUser, foto_url: res.data.url });
+            }
             Toast.success('Foto de perfil actualizada exitosamente.');
             await this.render();
           } else {
@@ -1192,6 +1211,42 @@ export class ProfileView {
           }
         } catch (uploadErr) {
           console.error('[Upload Therapist Photo Error]', uploadErr);
+          Toast.error(uploadErr.message || 'Error al subir fotografía de perfil.');
+        }
+      });
+    }
+
+    // Subida de Foto de Perfil del Administrador
+    const btnUploadAdminPhoto = document.getElementById('btn-upload-admin-photo');
+    const fileAdminPhotoInput = document.getElementById('admin-file-photo');
+    if (btnUploadAdminPhoto && fileAdminPhotoInput) {
+      btnUploadAdminPhoto.addEventListener('click', () => fileAdminPhotoInput.click());
+
+      fileAdminPhotoInput.addEventListener('change', async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('foto', file);
+
+        try {
+          Toast.info('Subiendo fotografía de perfil...');
+          const res = await apiClient.upload('/auth/profile/photo', formData);
+
+          if (res?.data?.url) {
+            if (res.data.user) {
+              store.setUser(res.data.user);
+            } else {
+              const currentUser = store.getState().user;
+              if (currentUser) store.setUser({ ...currentUser, foto_url: res.data.url });
+            }
+            Toast.success('Foto de perfil actualizada exitosamente.');
+            await this.render();
+          } else {
+            throw new Error(res?.error?.message || 'Error al procesar la imagen.');
+          }
+        } catch (uploadErr) {
+          console.error('[Upload Admin Photo Error]', uploadErr);
           Toast.error(uploadErr.message || 'Error al subir fotografía de perfil.');
         }
       });
@@ -1259,7 +1314,7 @@ export class ProfileView {
               </div>
               <div>
                 <h3 style="color: var(--soft-text-title); font-size: 1.15rem; font-weight: 800; margin: 0; letter-spacing: -0.015em;">
-                  Firma Digital y Rúbrica Profesional
+                  Rúbrica Digital
                 </h3>
                 <div style="font-size: 0.78rem; color: var(--soft-text-body); margin-top: 0.12rem;">
                   Especialista colegiado del Centro PSI Aprende
@@ -1304,7 +1359,7 @@ export class ProfileView {
 
               <div style="font-size: 0.74rem; color: var(--soft-text-muted); margin-top: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
                 ${Icons.info(13, 'var(--soft-purple-primary)')}
-                <span>Trace su firma con el ratón, lápiz óptico o pantalla táctil. Se guardará con nitidez y fondo transparente.</span>
+                <span>Trace su rúbrica con el ratón, lápiz óptico o pantalla táctil. Se guardará con nitidez y fondo transparente.</span>
               </div>
             </div>
 
@@ -1316,7 +1371,7 @@ export class ProfileView {
                   ${Icons.upload(20, 'var(--soft-purple-primary)')}
                 </div>
                 <div style="font-size: 0.88rem; font-weight: 700; color: var(--soft-text-title);" id="txt-modal-sig-upload-label">
-                  Haga clic aquí para seleccionar imagen o escaneo de su firma
+                  Haga clic aquí para seleccionar imagen o escaneo de su rúbrica
                 </div>
                 <div style="font-size: 0.74rem; color: var(--soft-text-muted); margin-top: 0.25rem;">
                   Formatos permitidos: PNG o JPG, tamaño máximo 4 MB
@@ -1325,7 +1380,7 @@ export class ProfileView {
 
               <div id="modal-preview-sig-wrap" style="display: none; margin-top: 1rem; text-align: center;">
                 <div style="font-size: 0.74rem; color: var(--soft-text-muted); margin-bottom: 0.35rem; font-weight: 600;">Vista previa de imagen cargada:</div>
-                <img id="img-modal-sig-preview" src="" alt="Vista previa de firma" style="max-height: 95px; max-width: 100%; border: 1.5px solid var(--soft-border-card-inner); border-radius: 10px; padding: 8px; background: #FFFFFF; object-fit: contain;" />
+                <img id="img-modal-sig-preview" src="" alt="Vista previa de rúbrica" style="max-height: 95px; max-width: 100%; border: 1.5px solid var(--soft-border-card-inner); border-radius: 10px; padding: 8px; background: #FFFFFF; object-fit: contain;" />
               </div>
             </div>
 
@@ -1338,7 +1393,7 @@ export class ProfileView {
             </button>
             <button type="button" id="btn-confirm-save-signature" class="soft-btn soft-btn-lvl-2">
               ${Icons.check(16, '#FFFFFF')}
-              <span>Guardar Firma Digital</span>
+              <span>Guardar Rúbrica Digital</span>
             </button>
           </div>
 

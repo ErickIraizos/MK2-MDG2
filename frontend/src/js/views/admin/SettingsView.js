@@ -106,7 +106,7 @@ export class SettingsView {
                 ${Icons.rooms(16, 'currentColor')}
                 <span>Gestión de Consultorios</span>
               </a>
-              <a href="#/admin/audit" class="soft-btn soft-btn-lvl-1-muted" style="text-decoration: none;">
+              <a href="#/admin/audit?from=settings" class="soft-btn soft-btn-lvl-1-muted" style="text-decoration: none;">
                 ${Icons.shield(16, 'currentColor')}
                 <span>Bitácora de Auditoría</span>
               </a>
@@ -468,7 +468,7 @@ export class SettingsView {
                 </div>
 
                 <div style="border-top: 1px solid var(--soft-divider); padding-top: 1.1rem;">
-                  <a href="#/admin/audit" class="soft-btn soft-btn-lvl-1" style="width: 100%; text-decoration: none; justify-content: center; display: inline-flex; align-items: center; gap: 0.5rem;">
+                  <a href="#/admin/audit?from=settings" class="soft-btn soft-btn-lvl-1" style="width: 100%; text-decoration: none; justify-content: center; display: inline-flex; align-items: center; gap: 0.5rem;">
                     ${Icons.shield(16, '#FFFFFF')}
                     <span>Abrir Bitácora Completa de Auditoría</span>
                   </a>

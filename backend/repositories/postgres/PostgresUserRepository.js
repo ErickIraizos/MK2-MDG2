@@ -6,7 +6,7 @@ export class PostgresUserRepository extends IUserRepository {
     const { rows } = await PostgresConnection.query(
       `SELECT u.id, u.nombre_completo, u.email, u.password_hash, u.rol_id,
               u.telefono, u.activo, u.ultimo_acceso, u.created_at,
-              u.firma_digital_blob, u.firma_actualizada_at,
+              u.firma_digital_blob, u.firma_actualizada_at, u.foto_url,
               r.nombre AS rol_nombre
        FROM usuarios u
        JOIN roles r ON u.rol_id = r.id
@@ -20,7 +20,7 @@ export class PostgresUserRepository extends IUserRepository {
     const { rows } = await PostgresConnection.query(
       `SELECT u.id, u.nombre_completo, u.email, u.password_hash, u.rol_id,
               u.telefono, u.activo, u.ultimo_acceso, u.created_at,
-              u.firma_digital_blob, u.firma_actualizada_at,
+              u.firma_digital_blob, u.firma_actualizada_at, u.foto_url,
               r.nombre AS rol_nombre
        FROM usuarios u
        JOIN roles r ON u.rol_id = r.id
@@ -33,7 +33,7 @@ export class PostgresUserRepository extends IUserRepository {
   async findAll(filters = {}) {
     let query = `
       SELECT u.id, u.nombre_completo, u.email, u.rol_id, u.telefono, u.activo,
-             u.ultimo_acceso, u.created_at, u.firma_digital_blob, u.firma_actualizada_at,
+             u.ultimo_acceso, u.created_at, u.firma_digital_blob, u.firma_actualizada_at, u.foto_url,
              r.nombre AS rol_nombre
       FROM usuarios u
       JOIN roles r ON u.rol_id = r.id
@@ -119,6 +119,10 @@ export class PostgresUserRepository extends IUserRepository {
     if (data.firma_actualizada_at !== undefined) {
       params.push(data.firma_actualizada_at);
       fields.push(`firma_actualizada_at = $${params.length}`);
+    }
+    if (data.foto_url !== undefined) {
+      params.push(data.foto_url);
+      fields.push(`foto_url = $${params.length}`);
     }
 
     if (fields.length === 0) return this.findById(id);

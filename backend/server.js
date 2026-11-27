@@ -141,6 +141,11 @@ async function startServer() {
     if (isPostgres) {
       const info = await PostgresConnection.verifyConnection();
       console.log(`[Database] Conectado exitosamente a PostgreSQL (${info.db}) en zona America/La_Paz`);
+      try {
+        await PostgresConnection.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS foto_url TEXT`);
+      } catch (migErr) {
+        console.warn('[Database] Aviso al verificar columna usuarios.foto_url:', migErr.message);
+      }
     } else {
       DatabaseConnection.getInstance();
     }
